@@ -1,0 +1,11 @@
+{
+  "name": "aveji",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kitchen cabinets and cut lists for the workshop.",
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "test": "node --test"
+  }
+}

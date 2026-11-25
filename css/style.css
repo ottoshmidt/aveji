@@ -1,0 +1,459 @@
+:root {
+  --bg: #f4f1ea;
+  --panel: #ffffff;
+  --text: #1f2328;
+  --muted: #5f6670;
+  --line: #d9d4c7;
+  --accent: #8a5a2b; /* wood */
+  --accent-text: #ffffff;
+  --base: #e9dcc8;
+  --wall: #d8e3ea;
+  --danger: #b42318;
+  --radius: 10px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17191d;
+    --panel: #22252b;
+    --text: #e8e6e1;
+    --muted: #a3a8b0;
+    --line: #3a3f47;
+    --accent: #c98d4f;
+    --accent-text: #17191d;
+    --base: #4a3d2c;
+    --wall: #2d3e4a;
+    --danger: #f97066;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Georgian', sans-serif;
+  line-height: 1.45;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 0.75rem;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 1.6rem;
+  color: var(--accent);
+}
+
+h2 {
+  font-size: 1.2rem;
+}
+
+h3 {
+  font-size: 1rem;
+}
+
+.top {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tagline {
+  margin: 0;
+  color: var(--muted);
+}
+
+.brand h1 {
+  margin: 0;
+}
+
+main {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0.5rem 1rem 3rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem;
+  min-width: 0;
+}
+
+.muted,
+.legend {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ---- Controls ---------------------------------------------------------------- */
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+button.danger {
+  color: var(--danger);
+}
+
+input[type='text'],
+input[type='number'],
+select {
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  min-width: 0;
+  max-width: 100%;
+}
+
+input[type='number'] {
+  width: 6.5rem;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.languages {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.languages button[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  min-width: 0;
+}
+
+.field > span:first-child {
+  color: var(--muted);
+}
+
+.field.wide input,
+.field.wide select {
+  width: 100%;
+  max-width: 32rem;
+}
+
+.unit {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.check input {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: none;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}
+
+.settings {
+  margin-top: 1rem;
+}
+
+.settings summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+/* ---- Cabinets ---------------------------------------------------------------- */
+
+.cabinets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.cabinet {
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--base);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+}
+
+.cabinet.wall {
+  border-left-color: var(--wall);
+}
+
+.cabinet-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.kind {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--base);
+}
+
+.cabinet.wall .kind {
+  background: var(--wall);
+}
+
+.cabinet-name {
+  flex: 1 1 10rem;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.actions button {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.9rem;
+}
+
+.fields {
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+}
+
+.problem {
+  margin: 0.75rem 0 0;
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+/* ---- Drawing ------------------------------------------------------------------ */
+
+.drawing svg {
+  display: block;
+  width: 100%;
+  max-height: 28rem;
+}
+
+.drawing .carcass {
+  fill: var(--panel);
+  stroke: var(--text);
+  stroke-width: 6;
+}
+
+.drawing .door {
+  fill: var(--base);
+  stroke: var(--text);
+  stroke-width: 3;
+}
+
+.drawing .handle {
+  stroke: var(--text);
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+
+.drawing .worktop {
+  fill: var(--muted);
+}
+
+.drawing .floor {
+  stroke: var(--muted);
+  stroke-width: 6;
+}
+
+.drawing text {
+  fill: var(--text);
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.drawing .size {
+  fill: var(--muted);
+}
+
+/* ---- Cut list ----------------------------------------------------------------- */
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table.parts {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+table.parts th,
+table.parts td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+/* Sizes and banding stay on one line; names and materials may wrap. */
+table.parts th,
+table.parts td.num,
+table.parts td.nowrap {
+  white-space: nowrap;
+}
+
+table.parts th {
+  font-weight: 600;
+  color: var(--muted);
+}
+
+table.parts .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+table.parts tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+}
+
+.totals ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.totals {
+  margin-top: 1rem;
+}
+
+.export {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.status {
+  min-height: 1.4em;
+  margin: 0.5rem 0 0;
+  color: var(--accent);
+}
+
+.print-only {
+  display: none;
+}
+
+/* ---- Print: the drawing and the cut list, nothing to click ---------------------- */
+
+@media print {
+  :root {
+    --bg: #fff;
+    --panel: #fff;
+    --text: #000;
+    --muted: #444;
+    --line: #999;
+    --base: #eee;
+    color-scheme: light;
+  }
+
+  .no-print,
+  .top .languages {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block;
+  }
+
+  .print-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+  }
+
+  .panel {
+    border: none;
+    padding: 0;
+  }
+
+  main {
+    padding: 0;
+  }
+
+  table.parts {
+    font-size: 9pt;
+  }
+
+  table.parts tr {
+    break-inside: avoid;
+  }
+
+  .drawing svg {
+    max-height: 9cm;
+  }
+}
