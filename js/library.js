@@ -5,7 +5,7 @@
  * in localStorage.
  */
 
-import { newProject, sanitizeProject } from './project.js';
+import { newProject, readProjectFile, sanitizeProject } from './project.js';
 
 /**
  * @typedef {object} Entry
@@ -129,4 +129,70 @@ export function copyProject(project, copyName) {
   const copy = structuredClone(project);
   copy.name = copyName;
   return copy;
+}
+
+/** Marks a backup file of every project. */
+export const BACKUP_FORMAT = 'aveji-backup';
+export const BACKUP_VERSION = 1;
+
+/**
+ * Every project as the text of a backup file.
+ * @param {Library} library
+ */
+export function backupFile(library) {
+  return JSON.stringify({ format: BACKUP_FORMAT, version: BACKUP_VERSION, projects: library.entries }, null, 2);
+}
+
+/**
+ * The projects in a file: a backup, or a single project saved by an earlier
+ * version. Null if it is neither.
+ * @param {string} text
+ * @param {string} lang
+ * @returns {Entry[] | null}
+ */
+export function readBackupFile(text, lang) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (data?.format === BACKUP_FORMAT) {
+    if (!Array.isArray(data.projects)) return null;
+    // sanitizeLibrary never returns an empty library, so check first.
+    if (!data.projects.some((/** @type {any} */ p) => sanitizeProject(p?.project, lang))) return [];
+    return sanitizeLibrary({ projects: data.projects }, lang).entries;
+  }
+  const single = readProjectFile(text, lang);
+  return single ? [newEntry(single)] : null;
+}
+
+/**
+ * Add restored projects. One the library already has (same id) is replaced
+ * only by a newer copy. If the library held nothing but one empty, untitled
+ * project (a new device), that one goes and the newest restored one opens.
+ * @param {Library} library
+ * @param {Entry[]} entries
+ * @returns {{ added: number, updated: number }}
+ */
+export function restore(library, entries) {
+  let added = 0;
+  let updated = 0;
+  const pristine =
+    library.entries.length === 1 && library.entries[0].project.cabinets.length === 0 && !library.entries[0].project.name.trim();
+  for (const incoming of entries) {
+    const i = library.entries.findIndex((e) => e.id === incoming.id);
+    if (i < 0) {
+      library.entries.push(incoming);
+      added += 1;
+    } else if (incoming.updatedAt > library.entries[i].updatedAt) {
+      library.entries[i] = incoming;
+      updated += 1;
+    }
+  }
+  if (pristine && added > 0) {
+    library.entries = library.entries.slice(1);
+    library.currentId = sortedEntries(library)[0].id;
+  }
+  return { added, updated };
 }

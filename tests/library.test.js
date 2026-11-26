@@ -1,7 +1,18 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { addProject, copyProject, currentEntry, emptyLibrary, removeCurrent, sanitizeLibrary, sortedEntries } from '../js/library.js';
-import { newCabinet, newProject } from '../js/project.js';
+import {
+  addProject,
+  backupFile,
+  copyProject,
+  currentEntry,
+  emptyLibrary,
+  readBackupFile,
+  removeCurrent,
+  restore,
+  sanitizeLibrary,
+  sortedEntries,
+} from '../js/library.js';
+import { newCabinet, newProject, projectFile } from '../js/project.js';
 
 /** @param {string} name */
 const named = (name) => ({ ...newProject('en'), name });
@@ -98,5 +109,63 @@ describe('project library', () => {
     assert.equal(original.name, 'A');
     assert.equal(original.cabinets[0].width, 600);
     assert.equal(original.settings.board, 18);
+  });
+});
+
+describe('backup and restore', () => {
+  const library = () =>
+    sanitizeLibrary(
+      {
+        currentId: 'a',
+        projects: [
+          { id: 'a', updatedAt: 10, project: named('A') },
+          { id: 'b', updatedAt: 20, project: named('B') },
+        ],
+      },
+      'en',
+    );
+
+  it('saves every project and reads them all back', () => {
+    const lib = library();
+    const entries = readBackupFile(backupFile(lib), 'en');
+    assert.deepEqual(entries, lib.entries);
+  });
+
+  it('also reads a single project saved by an earlier version', () => {
+    const entries = readBackupFile(projectFile(named('Old')), 'en');
+    assert.equal(entries?.length, 1);
+    assert.equal(entries?.[0].project.name, 'Old');
+  });
+
+  it('refuses other files, and reads an empty backup as no projects', () => {
+    assert.equal(readBackupFile('not json', 'en'), null);
+    assert.equal(readBackupFile('{"format":"something-else"}', 'en'), null);
+    assert.deepEqual(readBackupFile('{"format":"aveji-backup","projects":[]}', 'en'), []);
+  });
+
+  it('adds new projects, replaces older copies, and keeps newer ones', () => {
+    const lib = library();
+    const result = restore(lib, [
+      { id: 'a', updatedAt: 5, project: named('A old') }, // older: kept as is
+      { id: 'b', updatedAt: 30, project: named('B newer') }, // newer: replaces
+      { id: 'c', updatedAt: 1, project: named('C') }, // new: added
+    ]);
+    assert.deepEqual(result, { added: 1, updated: 1 });
+    assert.deepEqual(lib.entries.map((e) => e.project.name), ['A', 'B newer', 'C']);
+    assert.equal(lib.currentId, 'a', 'the open project stays open');
+  });
+
+  it('on a new device, replaces the one empty project and opens the newest restored one', () => {
+    const lib = emptyLibrary('en');
+    restore(lib, library().entries);
+    assert.deepEqual(lib.entries.map((e) => e.id), ['a', 'b']);
+    assert.equal(lib.currentId, 'b');
+  });
+
+  it('keeps an empty project that has a name', () => {
+    const lib = emptyLibrary('en');
+    lib.entries[0].project.name = 'Started';
+    restore(lib, library().entries);
+    assert.equal(lib.entries.length, 3);
   });
 });

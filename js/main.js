@@ -9,8 +9,8 @@ import { csvFile, toDelimited } from './csv.js';
 import { frontView } from './drawing.js';
 import { detectLanguage, LANGUAGES, t } from './i18n.js';
 import { cabinetProblems, hasShelves, KINDS, mergeParts, projectParts, totals } from './parts.js';
-import { addProject, copyProject, currentEntry, removeCurrent, sanitizeLibrary, sortedEntries } from './library.js';
-import { newCabinet, newId, newProject, projectFile, readProjectFile } from './project.js';
+import { addProject, backupFile, copyProject, currentEntry, readBackupFile, removeCurrent, restore, sanitizeLibrary, sortedEntries } from './library.js';
+import { newCabinet, newId, newProject } from './project.js';
 import { COLUMNS, cutListTable, NUMERIC } from './table.js';
 
 // Still v1: the library reads the single project the first version stored.
@@ -382,7 +382,8 @@ window.addEventListener('afterprint', () => {
 });
 
 $('#save-file').addEventListener('click', () => {
-  download(projectFile(state.project), `${baseName()}.aveji.json`, 'application/json');
+  const day = new Date().toISOString().slice(0, 10);
+  download(backupFile(state.library), `aveji-${day}.aveji.json`, 'application/json');
 });
 
 $('#open-file').addEventListener('click', () => $('#file-input').click());
@@ -392,15 +393,19 @@ $('#file-input').addEventListener('change', async (e) => {
   const file = input.files?.[0];
   input.value = '';
   if (!file) return;
-  const project = readProjectFile(await file.text(), state.lang);
-  if (!project) {
+  const entries = readBackupFile(await file.text(), state.lang);
+  if (!entries) {
     alert(tr('openFailed'));
     return;
   }
-  // An opened file becomes a project of its own, next to the others.
-  addProject(state.library, project);
+  const { added, updated } = restore(state.library, entries);
   save();
   renderAll();
+  const note = $('#project-status');
+  note.textContent = tr('restored', { added, updated });
+  setTimeout(() => {
+    if (note.textContent === tr('restored', { added, updated })) note.textContent = '';
+  }, 8000);
 });
 
 // ---- Project list --------------------------------------------------------------

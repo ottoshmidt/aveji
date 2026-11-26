@@ -13,9 +13,15 @@ Every project is kept in the browser (localStorage), listed under "My
 projects", most recently changed first: new, duplicate, delete, switch.
 They survive closing the browser and restarting, but not clearing the
 site's data, private windows, or (in Safari) 7 days without a visit; on
-the first change the app asks the browser to keep its storage. "Save to
-file" writes a project to a `.aveji.json` file, for a backup or another
-device; "Open file" adds one as a new project. Two open tabs stay in step.
+the first change the app asks the browser to keep its storage. Two open tabs
+stay in step.
+
+"Back up all projects" saves every project in one `.aveji.json` file, for a
+backup or to move them to another device. "Restore from file" adds the
+projects it does not have and replaces a project only with a newer copy, so
+it never deletes or rolls back work; on a new device it replaces the empty
+starting project. A single-project file from the first version restores too.
+To send a kitchen to the workshop, use the export (CSV, copy or PDF).
 
 ```sh
 npm start      # then open http://localhost:8080
@@ -68,7 +74,7 @@ css/style.css      layout, dark mode, print layout
 js/main.js         the page logic: forms, storage, files, export
 js/parts.js        cabinets -> parts, merging, totals (unit-tested)
 js/project.js      the project data: new, check, save, open
-js/library.js      every project in the browser, and the open one
+js/library.js      every project in the browser, the open one, backup and restore
 js/table.js        the cut list as rows and columns
 js/csv.js          CSV and tab-separated text
 js/drawing.js      front view as SVG
