@@ -150,8 +150,16 @@ select {
   max-width: 100%;
 }
 
-input[type='number'] {
+input[type='number'],
+.unit input {
   width: 6.5rem;
+}
+
+/* Text boxes and dropdowns the same height, so they line up side by side. */
+input[type='text'],
+input[type='number'],
+select {
+  height: 2.3rem;
 }
 
 :focus-visible {
@@ -187,6 +195,13 @@ input[type='number'] {
 
 .field > span:first-child {
   color: var(--muted);
+}
+
+/* In a grid, labels of one or two lines would push the inputs to different
+   heights: keep the label at the top and the input at the bottom of the
+   cell, so the inputs in a row line up. */
+.grid > .field {
+  justify-content: space-between;
 }
 
 .field.wide input,
