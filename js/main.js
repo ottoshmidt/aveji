@@ -9,9 +9,11 @@ import { csvFile, toDelimited } from './csv.js';
 import { frontView } from './drawing.js';
 import { detectLanguage, LANGUAGES, t } from './i18n.js';
 import { cabinetProblems, hasShelves, KINDS, mergeParts, projectParts, totals } from './parts.js';
-import { newCabinet, newId, newProject, projectFile, readProjectFile, sanitizeProject } from './project.js';
+import { addProject, copyProject, currentEntry, removeCurrent, sanitizeLibrary, sortedEntries } from './library.js';
+import { newCabinet, newId, newProject, projectFile, readProjectFile } from './project.js';
 import { COLUMNS, cutListTable, NUMERIC } from './table.js';
 
+// Still v1: the library reads the single project the first version stored.
 const STORAGE_KEY = 'aveji.state.v1';
 
 /** @param {string} selector */
@@ -20,7 +22,8 @@ const $ = (selector) => /** @type {HTMLElement} */ (document.querySelector(selec
 /**
  * @typedef {object} State
  * @property {string} lang
- * @property {import('./project.js').Project} project
+ * @property {import('./library.js').Library} library  every project in this browser
+ * @property {import('./project.js').Project} project  the open one (a view into library)
  * @property {boolean} merge       combine identical parts in the list
  * @property {',' | ';'} delimiter  CSV flavour
  */
@@ -28,29 +31,56 @@ const $ = (selector) => /** @type {HTMLElement} */ (document.querySelector(selec
 /** @returns {State} */
 function loadState() {
   const fallbackLang = detectLanguage(navigator.language);
+  /** @type {any} */
+  let raw = null;
   try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
-    const lang = raw && raw.lang in LANGUAGES ? raw.lang : fallbackLang;
-    return {
-      lang,
-      project: sanitizeProject(raw?.project, lang) ?? newProject(lang),
-      merge: raw?.merge !== false,
-      delimiter: raw?.delimiter === ',' ? ',' : ';',
-    };
+    raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
   } catch {
-    return { lang: fallbackLang, project: newProject(fallbackLang), merge: true, delimiter: fallbackLang === 'en' ? ',' : ';' };
+    // Unreadable or blocked storage: start fresh.
   }
+  const lang = raw && raw.lang in LANGUAGES ? raw.lang : fallbackLang;
+  const library = sanitizeLibrary(raw, lang);
+  return {
+    lang,
+    library,
+    get project() {
+      return currentEntry(this.library).project;
+    },
+    merge: raw?.merge !== false,
+    delimiter: raw?.delimiter === ',' ? ',' : raw?.delimiter === ';' ? ';' : lang === 'en' ? ',' : ';',
+  };
 }
 
-const state = loadState();
+let state = loadState();
 
 function save() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const { lang, merge, delimiter, library } = state;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ lang, merge, delimiter, currentId: library.currentId, projects: library.entries }));
   } catch {
-    // Storage can be blocked (private mode); the project then lasts this visit.
+    // Storage can be blocked (private mode); the projects then last this visit.
   }
 }
+
+let persistAsked = false;
+/** The open project changed: note when, store, and ask once to keep storage. */
+function changed() {
+  currentEntry(state.library).updatedAt = Date.now();
+  save();
+  if (!persistAsked) {
+    persistAsked = true;
+    // Asks the browser not to clear the projects when space runs low.
+    navigator.storage?.persist?.().catch(() => {});
+  }
+}
+
+// Another tab changed the projects: take its version, so neither tab
+// overwrites the other's work.
+window.addEventListener('storage', (e) => {
+  if (e.key !== STORAGE_KEY) return;
+  state = loadState();
+  renderAll();
+});
 
 const tr = (/** @type {string} */ key, /** @type {Record<string, string | number>} */ vars = {}) => t(state.lang, key, vars);
 
@@ -80,7 +110,27 @@ function renderTexts() {
   for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = tr(el.getAttribute('data-i18n') ?? '');
 }
 
+/** A project's name, or "Untitled" if it has none. @param {import('./project.js').Project} project */
+const projectLabel = (project) => project.name.trim() || tr('untitled');
+
+/** The project menu: every project, the most recently changed first. */
+function renderProjectList() {
+  const select = /** @type {HTMLSelectElement} */ ($('#project-select'));
+  const date = (/** @type {number} */ ms) => (ms ? new Date(ms).toLocaleDateString(state.lang === 'en' ? 'en-GB' : state.lang) : '');
+  select.replaceChildren(
+    ...sortedEntries(state.library).map((entry) => {
+      const option = document.createElement('option');
+      option.value = entry.id;
+      const when = date(entry.updatedAt);
+      option.textContent = when ? `${projectLabel(entry.project)} · ${when}` : projectLabel(entry.project);
+      return option;
+    }),
+  );
+  select.value = state.library.currentId;
+}
+
 function renderProjectForm() {
+  renderProjectList();
   /** @type {HTMLInputElement} */ ($('#project-name')).value = state.project.name;
   for (const input of /** @type {NodeListOf<HTMLInputElement>} */ (document.querySelectorAll('[data-setting]'))) {
     input.value = String(/** @type {Record<string, unknown>} */ (state.project.settings)[input.dataset.setting ?? '']);
@@ -194,8 +244,9 @@ const readNumber = (/** @type {HTMLInputElement} */ input) => (input.value.trim(
 
 $('#project-name').addEventListener('input', (e) => {
   state.project.name = /** @type {HTMLInputElement} */ (e.target).value;
-  save();
+  changed();
   $('#print-title').textContent = state.project.name;
+  renderProjectList();
 });
 
 $('#settings').addEventListener('input', (e) => {
@@ -210,7 +261,7 @@ $('#settings').addEventListener('input', (e) => {
   } else {
     settings[key] = input.value;
   }
-  save();
+  changed();
   renderProblems();
   renderOutput();
 });
@@ -227,7 +278,7 @@ $('#cabinets').addEventListener('input', (e) => {
     // An empty size counts as 0, so the cabinet shows "enter the width".
     /** @type {Record<string, number>} */ (/** @type {unknown} */ (cab))[key] = Number.isFinite(n) ? (INTEGER_FIELDS.has(key) ? Math.max(0, Math.round(n)) : n) : 0;
   }
-  save();
+  changed();
   renderProblems();
   renderOutput();
 });
@@ -244,7 +295,7 @@ $('#cabinets').addEventListener('click', (e) => {
     cabinets.splice(index + 1, 0, { ...cabinets[index], id: newId(), name: `${cabinets[index].name} (2)` });
   } else if (action === 'up' && index > 0) cabinets.splice(index - 1, 0, ...cabinets.splice(index, 1));
   else if (action === 'down' && index < cabinets.length - 1) cabinets.splice(index + 1, 0, ...cabinets.splice(index, 1));
-  save();
+  changed();
   renderCabinets();
   renderOutput();
 });
@@ -253,7 +304,7 @@ for (const kind of KINDS) {
   $(`#add-${kind}`).addEventListener('click', () => {
     const cab = newCabinet(kind, state.project.cabinets, state.lang);
     state.project.cabinets.push(cab);
-    save();
+    changed();
     renderCabinets();
     renderOutput();
     /** @type {HTMLInputElement | null} */ (document.querySelector(`.cabinet[data-id="${cab.id}"] [data-field="width"]`))?.focus();
@@ -346,14 +397,36 @@ $('#file-input').addEventListener('change', async (e) => {
     alert(tr('openFailed'));
     return;
   }
-  state.project = project;
+  // An opened file becomes a project of its own, next to the others.
+  addProject(state.library, project);
+  save();
+  renderAll();
+});
+
+// ---- Project list --------------------------------------------------------------
+
+$('#project-select').addEventListener('change', (e) => {
+  state.library.currentId = /** @type {HTMLSelectElement} */ (e.target).value;
   save();
   renderAll();
 });
 
 $('#new-project').addEventListener('click', () => {
-  if (state.project.cabinets.length > 0 && !confirm(tr('newProjectConfirm'))) return;
-  state.project = newProject(state.lang);
+  addProject(state.library, newProject(state.lang));
+  save();
+  renderAll();
+  $('#project-name').focus();
+});
+
+$('#duplicate-project').addEventListener('click', () => {
+  addProject(state.library, copyProject(state.project, tr('copyName', { name: projectLabel(state.project) })));
+  save();
+  renderAll();
+});
+
+$('#delete-project').addEventListener('click', () => {
+  if (!confirm(tr('deleteConfirm', { name: projectLabel(state.project) }))) return;
+  removeCurrent(state.library, state.lang);
   save();
   renderAll();
 });

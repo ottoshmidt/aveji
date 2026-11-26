@@ -224,6 +224,14 @@ input[type='number'] {
   margin-top: 1rem;
 }
 
+.project-name {
+  margin-top: 0.75rem;
+}
+
+.storage-note {
+  margin: 0.75rem 0 0;
+}
+
 .settings summary {
   cursor: pointer;
   font-weight: 600;

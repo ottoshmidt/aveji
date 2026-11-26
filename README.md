@@ -5,8 +5,17 @@ Russian. A designer describes the cabinets; Aveji works out every part and
 exports the cut list for the carpenter. Planned home: <https://aveji.aac.ge>.
 
 Plain HTML, CSS and JavaScript (ES modules), no build step and no
-dependencies. Everything runs in the browser; projects are kept in the
-browser and can be saved to and opened from a file.
+dependencies. Everything runs in the browser.
+
+## Projects
+
+Every project is kept in the browser (localStorage), listed under "My
+projects", most recently changed first: new, duplicate, delete, switch.
+They survive closing the browser and restarting, but not clearing the
+site's data, private windows, or (in Safari) 7 days without a visit; on
+the first change the app asks the browser to keep its storage. "Save to
+file" writes a project to a `.aveji.json` file, for a backup or another
+device; "Open file" adds one as a new project. Two open tabs stay in step.
 
 ```sh
 npm start      # then open http://localhost:8080
@@ -59,6 +68,7 @@ css/style.css      layout, dark mode, print layout
 js/main.js         the page logic: forms, storage, files, export
 js/parts.js        cabinets -> parts, merging, totals (unit-tested)
 js/project.js      the project data: new, check, save, open
+js/library.js      every project in the browser, and the open one
 js/table.js        the cut list as rows and columns
 js/csv.js          CSV and tab-separated text
 js/drawing.js      front view as SVG

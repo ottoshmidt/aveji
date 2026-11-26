@@ -22,15 +22,24 @@
       <section class="panel project no-print">
         <h2 data-i18n="project"></h2>
         <label class="field wide">
+          <span data-i18n="projects"></span>
+          <select id="project-select"></select>
+        </label>
+        <label class="field wide project-name">
           <span data-i18n="projectName"></span>
           <input id="project-name" type="text" autocomplete="off" />
         </label>
         <div class="buttons">
           <button type="button" id="new-project" data-i18n="newProject"></button>
+          <button type="button" id="duplicate-project" data-i18n="duplicateProject"></button>
+          <button type="button" id="delete-project" class="danger" data-i18n="deleteProject"></button>
+        </div>
+        <div class="buttons">
           <button type="button" id="save-file" data-i18n="saveFile"></button>
           <button type="button" id="open-file" data-i18n="openFile"></button>
           <input id="file-input" type="file" accept=".json,application/json" hidden />
         </div>
+        <p class="muted storage-note" data-i18n="storageNote"></p>
 
         <details class="settings">
           <summary data-i18n="settings"></summary>
