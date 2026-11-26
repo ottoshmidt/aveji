@@ -4,7 +4,7 @@
  * one and for checking one read from storage or from a file.
  */
 
-import { DEFAULT_CABINETS, DEFAULT_SETTINGS } from './parts.js';
+import { DEFAULT_CABINETS, DEFAULT_SETTINGS, KINDS } from './parts.js';
 import { t } from './i18n.js';
 
 /**
@@ -38,6 +38,7 @@ export function newProject(lang) {
       carcassMaterial: t(lang, 'default.carcassMaterial'),
       frontMaterial: t(lang, 'default.frontMaterial'),
       backMaterial: t(lang, 'default.backMaterial'),
+      drawerMaterial: t(lang, 'default.drawerMaterial'),
     },
     cabinets: [],
   };
@@ -45,7 +46,7 @@ export function newProject(lang) {
 
 /**
  * A new cabinet of `kind`, named after how many of that kind exist.
- * @param {'base' | 'wall'} kind
+ * @param {'base' | 'wall' | 'tall'} kind
  * @param {import('./parts.js').Cabinet[]} cabinets  existing ones
  * @param {string} lang
  * @returns {import('./parts.js').Cabinet}
@@ -78,7 +79,7 @@ export function sanitizeProject(raw, lang) {
   const cabinets = r.cabinets
     .filter((/** @type {unknown} */ c) => c && typeof c === 'object')
     .map((/** @type {Record<string, any>} */ c) => {
-      const kind = c.kind === 'wall' ? 'wall' : 'base';
+      const kind = KINDS.includes(c.kind) ? c.kind : 'base';
       const d = DEFAULT_CABINETS[kind];
       return {
         id: str(c.id, '') || newId(),
@@ -90,6 +91,7 @@ export function sanitizeProject(raw, lang) {
         partitions: Math.max(0, Math.round(num(c.partitions, d.partitions))),
         shelves: Math.max(0, Math.round(num(c.shelves, d.shelves))),
         doors: Math.max(0, Math.round(num(c.doors, d.doors))),
+        drawers: Math.max(0, Math.round(num(c.drawers, d.drawers))),
       };
     });
   return { name: str(r.name, ''), settings: /** @type {any} */ (settings), cabinets };

@@ -19,13 +19,23 @@ One common construction, with the numbers under "Construction and materials":
 
 - Sides run the full height; the other carcass parts sit between them.
 - A base cabinet has a bottom and two rails (front and back) instead of a top.
-- A wall cabinet has a top and a bottom.
+- A wall cabinet has a top and a bottom. So does a tall cabinet, which stands
+  on the floor and by default (2080 mm + 100 mm legs) reaches the top of the
+  wall cabinets; in the front view, wall cabinets hang beside it.
 - Partitions (vertical boards) split the inside into equal sections; they
   stand on the bottom and reach the top or the rails, full depth.
 - Shelves sit on pins in each section (2 mm play), set back from the front;
   the shelf count is per section.
 - The back (HDF) is nailed on, a little smaller than the cabinet.
 - Doors are full overlay, with the door gap between and around them.
+- Drawers go at the top: with doors, each drawer face is 150 mm high and the
+  doors fill the rest; without doors the drawers share the height (and the
+  cabinet has no shelves). Partitions and drawers in one cabinet are not
+  supported yet.
+- A drawer box has two sides and two ends of 16 mm board, banded on the top
+  edge, on an HDF bottom, running on ball-bearing runners with 13 mm on each
+  side. It is as deep as the longest standard runner (250-600 mm, in 50 mm
+  steps) that fits the cabinet, and 40 mm lower than its face.
 
 A part's length runs along the grain. Edge banding is per edge: L1 and L2
 along the length (L1 is the front edge), W1 and W2 along the width.

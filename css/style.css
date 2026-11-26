@@ -464,3 +464,9 @@ table.parts tbody tr:nth-child(even) {
     max-height: 9cm;
   }
 }
+
+.cabinet .note {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}

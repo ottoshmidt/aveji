@@ -105,6 +105,23 @@ describe('front view', () => {
     assert.equal(frontView([], settings, { title: 'x' }), '');
   });
 
+  it('puts tall cabinets on the floor and hangs wall cabinets beside them, not over them', () => {
+    const cab = (id, kind, width, height, extra = {}) => ({ id, name: id, kind, width, height, depth: 560, partitions: 0, shelves: 0, doors: 1, drawers: 0, ...extra });
+    const svg = frontView([cab('B', 'base', 600, 720), cab('T', 'tall', 600, 2080), cab('W1', 'wall', 600, 720), cab('W2', 'wall', 400, 720)], settings, { title: 'x' });
+    const xOf = (name) => Number(svg.match(new RegExp(`<text class="name" x="([\\d.]+)" [^>]*>${name}<`))[1]);
+    assert.equal(xOf('T'), 900);
+    assert.equal(xOf('W1'), 300);
+    assert.equal(xOf('W2'), 1400); // after the tall cabinet (600..1200)
+    // The worktop covers only the base cabinet.
+    assert.match(svg, /class="worktop" x="0" [^>]*width="600"/);
+  });
+
+  it('draws drawer faces above the doors', () => {
+    const svg = frontView([{ id: 'a', name: 'A', kind: 'base', width: 600, height: 720, depth: 560, partitions: 0, shelves: 0, doors: 1, drawers: 2 }], settings, { title: 'x' });
+    assert.equal(svg.match(/class="door"/g)?.length, 3);
+    assert.ok(!svg.includes('NaN'));
+  });
+
   it('draws partitions as dashed lines', () => {
     const svg = frontView([{ id: 'a', name: 'A', kind: 'base', width: 900, height: 720, depth: 560, partitions: 2, shelves: 0, doors: 3 }], settings, { title: 'x' });
     assert.equal(svg.match(/class="partition"/g)?.length, 2);

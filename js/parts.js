@@ -6,29 +6,43 @@
  *   - Sides run the full height; everything else sits between them.
  *   - Base cabinet: a bottom, and two rails (front and back) instead of a top,
  *     since the worktop covers it.
- *   - Wall cabinet: a top and a bottom.
+ *   - Wall and tall cabinets: a top and a bottom. A tall cabinet stands on the
+ *     floor and reaches the top of the wall cabinets.
  *   - Partitions (vertical boards) split the inside into equal sections. They
  *     stand on the bottom and reach the top (or the rails), full depth.
- *   - Shelves sit on pins in each section, set back from the front.
+ *   - Shelves sit on pins in each section, set back from the front. With
+ *     drawers and no doors, the drawers fill the cabinet and there are none.
  *   - The back (HDF) is nailed onto the back edges, slightly smaller than the
  *     cabinet so it does not show.
- *   - Doors are full overlay, with `doorGap` between doors and around them.
+ *   - Fronts are full overlay, with `doorGap` between them and around them.
+ *     Drawers go at the top, `drawerFrontHeight` each, and doors fill the rest;
+ *     drawers alone share the height equally.
+ *   - A drawer is a face (the visible front) on a box: two sides and two ends
+ *     of `drawerBoard`, on a bottom of the back material, running on
+ *     ball-bearing runners that need `runnerClearance` on each side. The box
+ *     is as deep as the longest standard runner that fits, and 40 mm lower
+ *     than its face.
  *
  * A part's `length` always runs along the grain (the board's texture) and
  * `width` across it. Edge banding is given per edge: L1 and L2 are the two
- * edges along the length, W1 and W2 the two along the width. L1 is the front.
+ * edges along the length, W1 and W2 the two along the width. L1 is the front
+ * (for drawer box parts, the top edge).
  */
 
 /**
  * @typedef {object} Settings
  * @property {number} board          carcass board thickness, mm
- * @property {number} doorGap        gap between doors and around them, mm
+ * @property {number} doorGap        gap between fronts and around them, mm
  * @property {number} shelfSetback   how far shelves sit back from the front, mm
  * @property {number} railWidth      width of a base cabinet's top rails, mm
  * @property {number} backReveal     how much smaller the back is on each side, mm
+ * @property {number} drawerFrontHeight  a drawer face's height above doors, mm
+ * @property {number} drawerBoard    drawer box board thickness, mm
+ * @property {number} runnerClearance  space for a drawer runner on each side, mm
  * @property {string} carcassMaterial
  * @property {string} frontMaterial
- * @property {string} backMaterial
+ * @property {string} backMaterial   also the drawer bottoms
+ * @property {string} drawerMaterial drawer box sides and ends
  * @property {string} carcassEdge    edge banding on carcass parts, e.g. '0.4'
  * @property {string} frontEdge      edge banding on doors, e.g. '1'
  */
@@ -37,13 +51,15 @@
  * @typedef {object} Cabinet
  * @property {string} id
  * @property {string} name
- * @property {'base' | 'wall'} kind  base: stands on the floor; wall: hangs
+ * @property {'base' | 'wall' | 'tall'} kind  base: on the floor, under the worktop;
+ *   wall: hangs; tall: on the floor, up to the top of the wall cabinets
  * @property {number} width
  * @property {number} height  carcass height, without legs
  * @property {number} depth
  * @property {number} partitions  vertical boards splitting the inside into sections
  * @property {number} shelves     per section
  * @property {number} doors
+ * @property {number} drawers
  */
 
 /**
@@ -56,7 +72,8 @@
 
 /**
  * @typedef {object} Part
- * @property {string} type      side, bottom, top, railFront, railBack, partition, shelf, back, door
+ * @property {string} type      side, bottom, top, railFront, railBack, partition, shelf, back, door,
+ *   drawerFace, boxSide, boxEnd, boxBottom
  * @property {string} cabinet   the cabinet's name (several, comma-separated, once merged)
  * @property {string} material
  * @property {number} length    along the grain, mm
@@ -73,23 +90,64 @@ export const DEFAULT_SETTINGS = Object.freeze({
   shelfSetback: 20,
   railWidth: 100,
   backReveal: 2,
+  drawerFrontHeight: 150,
+  drawerBoard: 16,
+  runnerClearance: 13,
   carcassMaterial: '',
   frontMaterial: '',
   backMaterial: '',
+  drawerMaterial: '',
   carcassEdge: '0.4',
   frontEdge: '1',
 });
 
 /** Typical sizes for a new cabinet of each kind. */
 export const DEFAULT_CABINETS = Object.freeze({
-  base: Object.freeze({ width: 600, height: 720, depth: 560, partitions: 0, shelves: 1, doors: 1 }),
-  wall: Object.freeze({ width: 600, height: 720, depth: 300, partitions: 0, shelves: 2, doors: 1 }),
+  base: Object.freeze({ width: 600, height: 720, depth: 560, partitions: 0, shelves: 1, doors: 1, drawers: 0 }),
+  wall: Object.freeze({ width: 600, height: 720, depth: 300, partitions: 0, shelves: 2, doors: 1, drawers: 0 }),
+  // 100 mm legs + 2080 = 2180: the top of a 720 mm wall cabinet hung above a
+  // 720 mm base cabinet, a 40 mm worktop and a 600 mm gap.
+  tall: Object.freeze({ width: 600, height: 2080, depth: 560, partitions: 0, shelves: 4, doors: 1, drawers: 0 }),
 });
+
+export const KINDS = /** @type {const} */ (['base', 'wall', 'tall']);
+
+/** Standard drawer runner lengths, mm. */
+export const RUNNER_LENGTHS = Object.freeze([250, 300, 350, 400, 450, 500, 550, 600]);
+
+/** How much lower a drawer box is than its face, mm. */
+const BOX_BELOW_FACE = 40;
 
 /** Round to half a millimetre, which is as fine as a panel saw cuts. */
 export const round = (/** @type {number} */ mm) => Math.round(mm * 2) / 2;
 
 const NO_EDGES = Object.freeze({ L1: '', L2: '', W1: '', W2: '' });
+
+/**
+ * The longest standard runner for a cabinet `depth` deep, leaving 10 mm at
+ * the back; undefined if even the shortest does not fit.
+ * @param {number} depth
+ */
+export function runnerLength(depth) {
+  return [...RUNNER_LENGTHS].reverse().find((length) => length <= depth - 10);
+}
+
+/**
+ * Heights of a cabinet's fronts: drawer faces at the top, then the doors.
+ * @param {Cabinet} cab
+ * @param {Settings} s
+ * @returns {{ drawerHeight: number, doorHeight: number }}  0 where there are none
+ */
+export function frontHeights(cab, s) {
+  const n = cab.drawers ?? 0;
+  const gap = s.doorGap;
+  if (n === 0) return { drawerHeight: 0, doorHeight: cab.doors > 0 ? cab.height - gap : 0 };
+  if (cab.doors === 0) return { drawerHeight: (cab.height - n * gap) / n, doorHeight: 0 };
+  return { drawerHeight: s.drawerFrontHeight, doorHeight: cab.height - n * (s.drawerFrontHeight + gap) - gap };
+}
+
+/** Whether a cabinet has shelves: not when drawers fill it. @param {Cabinet} cab */
+export const hasShelves = (cab) => !((cab.drawers ?? 0) > 0 && cab.doors === 0);
 
 /**
  * The parts of one cabinet.
@@ -102,6 +160,7 @@ export function cabinetParts(cab, s) {
   const T = s.board;
   const inner = W - 2 * T;
   const front = { ...NO_EDGES, L1: s.carcassEdge };
+  const all = { L1: s.frontEdge, L2: s.frontEdge, W1: s.frontEdge, W2: s.frontEdge };
   /** @type {Part[]} */
   const parts = [];
   /** @param {string} type @param {string} material @param {number} length @param {number} width @param {number} qty @param {boolean} grain @param {Edges} edges */
@@ -121,13 +180,25 @@ export function cabinetParts(cab, s) {
   const p = cab.partitions ?? 0;
   add('partition', s.carcassMaterial, H - 2 * T, D, p, true, front);
   // Shelves on pins need a little play between the sides.
-  add('shelf', s.carcassMaterial, sectionWidth(cab, s) - 2, D - s.shelfSetback, cab.shelves * (p + 1), true, front);
+  if (hasShelves(cab)) add('shelf', s.carcassMaterial, sectionWidth(cab, s) - 2, D - s.shelfSetback, cab.shelves * (p + 1), true, front);
   add('back', s.backMaterial, H - 2 * s.backReveal, W - 2 * s.backReveal, 1, false, NO_EDGES);
+
+  const { drawerHeight, doorHeight } = frontHeights(cab, s);
   const n = cab.doors;
-  if (n > 0) {
-    const doorWidth = (W - n * s.doorGap) / n;
-    const all = { L1: s.frontEdge, L2: s.frontEdge, W1: s.frontEdge, W2: s.frontEdge };
-    add('door', s.frontMaterial, H - s.doorGap, doorWidth, n, true, all);
+  if (n > 0) add('door', s.frontMaterial, doorHeight, (W - n * s.doorGap) / n, n, true, all);
+
+  const d = cab.drawers ?? 0;
+  if (d > 0) {
+    // Drawer faces: the grain runs across the cabinet.
+    add('drawerFace', s.frontMaterial, W - s.doorGap, drawerHeight, d, true, all);
+    const t = s.drawerBoard;
+    const boxWidth = inner - 2 * s.runnerClearance;
+    const boxDepth = runnerLength(D) ?? 0;
+    const boxHeight = drawerHeight - BOX_BELOW_FACE;
+    const top = { ...NO_EDGES, L1: s.carcassEdge };
+    add('boxSide', s.drawerMaterial, boxDepth, boxHeight, 2 * d, true, top);
+    add('boxEnd', s.drawerMaterial, boxWidth - 2 * t, boxHeight, 2 * d, true, top);
+    add('boxBottom', s.backMaterial, boxDepth, boxWidth, d, false, NO_EDGES);
   }
   return parts;
 }
@@ -158,8 +229,16 @@ export function cabinetProblems(cab, s) {
   if (cab.width - 2 * s.board <= 2) problems.push('problem.tooNarrow');
   else if ((cab.partitions ?? 0) > 0 && sectionWidth(cab, s) < 50) problems.push('problem.tooManyPartitions');
   if (cab.height - 2 * s.board <= 0) problems.push('problem.tooLow');
-  if (cab.depth - s.shelfSetback <= 0 && cab.shelves > 0) problems.push('problem.tooShallow');
+  if (cab.depth - s.shelfSetback <= 0 && cab.shelves > 0 && hasShelves(cab)) problems.push('problem.tooShallow');
   if (cab.doors > 0 && (cab.width - cab.doors * s.doorGap) / cab.doors < 50) problems.push('problem.tooManyDoors');
+  const d = cab.drawers ?? 0;
+  if (d > 0) {
+    const { drawerHeight, doorHeight } = frontHeights(cab, s);
+    if ((cab.partitions ?? 0) > 0) problems.push('problem.drawersAndPartitions');
+    if (runnerLength(cab.depth) === undefined) problems.push('problem.tooShallowForDrawers');
+    if (cab.width - 2 * s.board - 2 * s.runnerClearance - 2 * s.drawerBoard < 50) problems.push('problem.tooNarrowForDrawers');
+    if (drawerHeight - BOX_BELOW_FACE < 50 || (cab.doors > 0 && doorHeight < 100)) problems.push('problem.tooManyDrawers');
+  }
   return problems;
 }
 

@@ -1,6 +1,18 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { cabinetParts, cabinetProblems, DEFAULT_SETTINGS, mergeParts, projectParts, round, totals } from '../js/parts.js';
+import {
+  cabinetParts,
+  cabinetProblems,
+  DEFAULT_CABINETS,
+  DEFAULT_SETTINGS,
+  frontHeights,
+  hasShelves,
+  mergeParts,
+  projectParts,
+  round,
+  runnerLength,
+  totals,
+} from '../js/parts.js';
 
 const settings = { ...DEFAULT_SETTINGS, carcassMaterial: 'LDSP 18', frontMaterial: 'MDF 18', backMaterial: 'HDF 3' };
 const base = { id: 'a', name: 'B1', kind: 'base', width: 600, height: 720, depth: 560, shelves: 1, doors: 1 };
@@ -97,6 +109,77 @@ describe('partitions', () => {
 
   it('cannot leave sections narrower than 50 mm', () => {
     assert.deepEqual(cabinetProblems({ ...split, partitions: 15, doors: 1 }, settings), ['problem.tooManyPartitions']);
+  });
+});
+
+describe('drawers', () => {
+  const s = { ...settings, drawerMaterial: 'LDSP 16' };
+  const chest = { ...base, drawers: 3, doors: 0 };
+  const parts = cabinetParts(chest, s);
+
+  it('share the height equally when there are no doors, faces banded all round', () => {
+    const face = find(parts, 'drawerFace');
+    // (720 - 3 * 3) / 3 = 237; the grain runs across the cabinet.
+    assert.deepEqual([face.length, face.width, face.qty, face.material], [597, 237, 3, 'MDF 18']);
+    assert.deepEqual(face.edges, { L1: '1', L2: '1', W1: '1', W2: '1' });
+  });
+
+  it('have boxes between the runners, as deep as the longest runner that fits', () => {
+    // Inside 564, less 2 * 13 for runners = 538 box width; 550 mm runner in 560.
+    const side = find(parts, 'boxSide');
+    const end = find(parts, 'boxEnd');
+    const bottom = find(parts, 'boxBottom');
+    assert.deepEqual([side.length, side.width, side.qty, side.material], [550, 197, 6, 'LDSP 16']);
+    assert.deepEqual([end.length, end.width, end.qty], [506, 197, 6]);
+    assert.deepEqual([bottom.length, bottom.width, bottom.qty, bottom.material, bottom.grain], [550, 538, 3, 'HDF 3', false]);
+    assert.equal(side.edges.L1, '0.4');
+  });
+
+  it('pick standard runner lengths', () => {
+    assert.equal(runnerLength(560), 550);
+    assert.equal(runnerLength(559), 500);
+    assert.equal(runnerLength(300), 250);
+    assert.equal(runnerLength(259), undefined);
+  });
+
+  it('leave out shelves when they fill the cabinet', () => {
+    assert.equal(find(parts, 'shelf'), undefined);
+    assert.equal(hasShelves(chest), false);
+  });
+
+  it('sit above the doors at the set height, the doors taking the rest', () => {
+    const mixed = cabinetParts({ ...base, drawers: 1, doors: 1 }, s);
+    assert.deepEqual([find(mixed, 'drawerFace').width, find(mixed, 'drawerFace').qty], [150, 1]);
+    // 720 - (150 + 3) - 3
+    assert.equal(find(mixed, 'door').length, 564);
+    assert.equal(find(mixed, 'shelf').qty, 1);
+    assert.deepEqual(frontHeights({ ...base, drawers: 1, doors: 1 }, s), { drawerHeight: 150, doorHeight: 564 });
+  });
+
+  it('refuse what cannot be built', () => {
+    assert.deepEqual(cabinetProblems({ ...chest, partitions: 1 }, s), ['problem.drawersAndPartitions']);
+    assert.deepEqual(cabinetProblems({ ...chest, depth: 250 }, s), ['problem.tooShallowForDrawers']);
+    assert.deepEqual(cabinetProblems({ ...chest, width: 130 }, s), ['problem.tooNarrowForDrawers']);
+    assert.deepEqual(cabinetProblems({ ...chest, drawers: 9 }, s), ['problem.tooManyDrawers']);
+    assert.deepEqual(cabinetProblems({ ...base, drawers: 5, doors: 1 }, s), ['problem.tooManyDrawers']);
+  });
+});
+
+describe('tall cabinet', () => {
+  const tall = { id: 't', name: 'T1', kind: 'tall', ...DEFAULT_CABINETS.tall };
+  const parts = cabinetParts(tall, settings);
+
+  it('reaches the top of the wall cabinets by default', () => {
+    // legs + carcass = 100 + 2080 = 2180 = 100 + 720 + 40 + 600 + 720
+    assert.equal(100 + tall.height, 100 + 720 + 40 + 600 + 720);
+  });
+
+  it('has a top and a bottom like a wall cabinet, and a full-height door', () => {
+    assert.equal(find(parts, 'side').length, 2080);
+    assert.equal(find(parts, 'top').length, 564);
+    assert.equal(find(parts, 'railFront'), undefined);
+    assert.equal(find(parts, 'door').length, 2077);
+    assert.equal(find(parts, 'shelf').qty, 4);
   });
 });
 

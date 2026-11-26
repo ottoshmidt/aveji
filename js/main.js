@@ -8,7 +8,7 @@
 import { csvFile, toDelimited } from './csv.js';
 import { frontView } from './drawing.js';
 import { detectLanguage, LANGUAGES, t } from './i18n.js';
-import { cabinetProblems, mergeParts, projectParts, totals } from './parts.js';
+import { cabinetProblems, hasShelves, KINDS, mergeParts, projectParts, totals } from './parts.js';
 import { newCabinet, newId, newProject, projectFile, readProjectFile, sanitizeProject } from './project.js';
 import { COLUMNS, cutListTable, NUMERIC } from './table.js';
 
@@ -89,8 +89,8 @@ function renderProjectForm() {
   /** @type {HTMLSelectElement} */ ($('#delimiter')).value = state.delimiter;
 }
 
-const INTEGER_FIELDS = new Set(['partitions', 'shelves', 'doors']);
-const CABINET_FIELDS = /** @type {const} */ (['width', 'height', 'depth', 'partitions', 'shelves', 'doors']);
+const INTEGER_FIELDS = new Set(['partitions', 'shelves', 'doors', 'drawers']);
+const CABINET_FIELDS = /** @type {const} */ (['width', 'height', 'depth', 'partitions', 'shelves', 'doors', 'drawers']);
 
 /** @param {import('./parts.js').Cabinet} cab @param {number} index */
 function cabinetCard(cab, index) {
@@ -115,7 +115,8 @@ function cabinetCard(cab, index) {
       </span>
     </div>
     <div class="grid fields">${fields}</div>
-    <p class="problem" hidden></p>`;
+    <p class="problem" hidden></p>
+    <p class="note" hidden></p>`;
   /** @type {HTMLInputElement} */ (li.querySelector('.cabinet-name')).value = cab.name;
   return li;
 }
@@ -135,6 +136,10 @@ function renderProblems() {
     const problems = cabinetProblems(cab, state.project.settings);
     p.hidden = problems.length === 0;
     p.textContent = problems.length ? [...problems.map((k) => tr(k)), tr('skipped')].join(' ') : '';
+    const note = /** @type {HTMLElement} */ (p.nextElementSibling);
+    const noShelves = !hasShelves(cab) && cab.shelves > 0;
+    note.hidden = !noShelves;
+    note.textContent = noShelves ? tr('noShelvesWithDrawers') : '';
   }
 }
 
@@ -145,7 +150,7 @@ function currentParts() {
 
 /** The number in a cell as people write it in this language. */
 const formatNumber = (/** @type {number} */ n, digits = 1) =>
-  n.toLocaleString(state.lang === 'en' ? 'en-US' : state.lang, { maximumFractionDigits: digits });
+  n.toLocaleString(state.lang === 'en' ? 'en-US' : state.lang, { maximumFractionDigits: digits, useGrouping: false });
 
 function renderOutput() {
   const { settings, cabinets } = state.project;
@@ -244,7 +249,7 @@ $('#cabinets').addEventListener('click', (e) => {
   renderOutput();
 });
 
-for (const kind of /** @type {const} */ (['base', 'wall'])) {
+for (const kind of KINDS) {
   $(`#add-${kind}`).addEventListener('click', () => {
     const cab = newCabinet(kind, state.project.cabinets, state.lang);
     state.project.cabinets.push(cab);
