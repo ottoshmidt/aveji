@@ -9,7 +9,7 @@
  * Units are millimetres; the SVG scales to fit its box.
  */
 
-import { frontHeights } from './parts.js';
+import { frontHeights, worktopRuns } from './parts.js';
 
 const LEGS = 100;
 /** Gap between the worktop and the wall cabinets. */
@@ -63,7 +63,13 @@ export function frontView(cabinets, settings, labels) {
     x += c.width;
   }
 
-  const right = Math.max(1, ...[...placedFloor, ...placedWall].map((p) => p.x + p.c.width));
+  const overhang = worktopRuns(cabinets, settings);
+  const left = Math.min(0, ...overhang.map((r) => (placedFloor.find((p) => p.c === r.cabinets[0])?.x ?? 0) - r.before));
+  const right = Math.max(
+    1,
+    ...[...placedFloor, ...placedWall].map((p) => p.x + p.c.width),
+    ...overhang.map((r) => (placedFloor.find((p) => p.c === r.cabinets[0])?.x ?? 0) - r.before + r.pieces.reduce((sum, p) => sum + p.length, 0)),
+  );
   // y grows downwards in SVG; work in "height above the floor" and flip.
   const top = Math.max(
     ...placedFloor.map((p) => LEGS + p.c.height + (p.c.kind === 'base' ? WORKTOP : 0)),
@@ -130,21 +136,23 @@ export function frontView(cabinets, settings, labels) {
   };
 
   for (const { c, x } of placedFloor) cabinet(c, x, LEGS);
-  // The worktop runs over each stretch of base cabinets side by side.
-  for (let i = 0; i < placedFloor.length; ) {
-    if (placedFloor[i].c.kind !== 'base') {
-      i++;
-      continue;
+  // The worktop over each run of base cabinets, with its overhangs, and a
+  // thin line where two pieces join.
+  const worktopY = y(LEGS + baseHeight + WORKTOP);
+  for (const run of worktopRuns(cabinets, settings)) {
+    const start = (placedFloor.find((p) => p.c === run.cabinets[0])?.x ?? 0) - run.before;
+    const length = run.pieces.reduce((sum, p) => sum + p.length, 0);
+    out.push(`<rect class="worktop" x="${start}" y="${worktopY}" width="${length}" height="${WORKTOP}"/>`);
+    let seam = start;
+    for (const piece of run.pieces.slice(0, -1)) {
+      seam += piece.length;
+      out.push(`<line class="seam" x1="${seam}" y1="${worktopY}" x2="${seam}" y2="${worktopY + WORKTOP}"/>`);
     }
-    const start = placedFloor[i].x;
-    let end = start;
-    for (; i < placedFloor.length && placedFloor[i].c.kind === 'base'; i++) end = placedFloor[i].x + placedFloor[i].c.width;
-    out.push(`<rect class="worktop" x="${start}" y="${y(LEGS + baseHeight + WORKTOP)}" width="${end - start}" height="${WORKTOP}"/>`);
   }
   for (const { c, x } of placedWall) cabinet(c, x, wallBottom);
-  out.push(`<line class="floor" x1="${-margin / 2}" y1="${y(0)}" x2="${right + margin / 2}" y2="${y(0)}"/>`);
+  out.push(`<line class="floor" x1="${left - margin / 2}" y1="${y(0)}" x2="${right + margin / 2}" y2="${y(0)}"/>`);
 
-  const vb = [-margin, -margin, right + 2 * margin, top + 2 * margin].join(' ');
+  const vb = [left - margin, -margin, right - left + 2 * margin, top + 2 * margin].join(' ');
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" role="img" aria-label="${esc(labels.title)}" style="font-size:${FONT}px">` +
     out.join('') +

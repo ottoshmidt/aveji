@@ -40,7 +40,7 @@ One common construction, with the numbers under "Construction and materials":
 - Partitions (vertical boards) split the inside into equal sections; they
   stand on the bottom and reach the top or the rails, full depth.
 - Shelves sit on pins in each section (2 mm play), set back from the front;
-  the shelf count is per section.
+  the shelf count ("Shelves") is per section.
 - The back (HDF) is nailed on, a little smaller than the cabinet.
 - Doors are full overlay, with the door gap between and around them.
 - Drawers go at the top: with doors, each drawer face is 150 mm high and the
@@ -52,10 +52,14 @@ One common construction, with the numbers under "Construction and materials":
   side. It is as deep as the longest standard runner (250-600 mm, in 50 mm
   steps) that fits the cabinet, and 40 mm lower than its face.
 
-The worktop is one piece per run of base cabinets side by side (a tall
-cabinet starts a new run): as long as the run, 600 mm deep by default, in
-its own material. Untick "Worktop in the cut list" when it is made
-elsewhere (stone, for example); the drawing shows it either way.
+The worktop covers each run of base cabinets side by side (a tall cabinet
+starts a new run), 600 mm deep by default, in its own material. It
+overhangs the left and right ends of the kitchen by the overhang settings
+(0 against a wall), never against a tall cabinet. A run longer than the
+longest piece (4100 mm by default) is cut into pieces that join over a
+cabinet side, as many whole cabinets per piece as fit. Untick "Worktop"
+when it is made elsewhere (stone, for example); the drawing shows it
+either way, with its joints.
 
 A part's length runs along the grain. Edge banding is per edge: L1 and L2
 along the length (L1 is the front edge), W1 and W2 along the width.

@@ -347,6 +347,11 @@ input[type='number'] {
   fill: var(--muted);
 }
 
+.drawing .seam {
+  stroke: var(--panel);
+  stroke-width: 6;
+}
+
 .drawing .floor {
   stroke: var(--muted);
   stroke-width: 6;

@@ -23,10 +23,13 @@
  *     is as deep as the longest standard runner that fits, and 40 mm lower
  *     than its face.
  *
- * The worktop is one piece per run of base cabinets side by side (a tall
- * cabinet between them starts a new run), as long as the run and
- * `worktopDepth` deep. It can be left out of the list when it comes from
- * elsewhere (stone, for example).
+ * The worktop covers each run of base cabinets side by side (a tall cabinet
+ * between them starts a new run), `worktopDepth` deep. At the two ends of
+ * the kitchen it overhangs by `worktopOverhangLeft` / `Right` (0 against a
+ * wall); next to a tall cabinet it does not. A run longer than
+ * `worktopMaxLength` is cut into pieces that join over a cabinet side. The
+ * worktop can be left out of the list when it comes from elsewhere (stone,
+ * for example).
  *
  * A part's `length` always runs along the grain (the board's texture) and
  * `width` across it. Edge banding is given per edge: L1 and L2 are the two
@@ -47,6 +50,9 @@
  * @property {boolean} worktop        include the worktop in the cut list
  * @property {number} worktopDepth   mm
  * @property {number} worktopThickness  mm (for the drawing)
+ * @property {number} worktopOverhangLeft   past the left end of the kitchen, mm
+ * @property {number} worktopOverhangRight  past the right end of the kitchen, mm
+ * @property {number} worktopMaxLength  longest piece the material comes in, mm
  * @property {string} carcassMaterial
  * @property {string} frontMaterial
  * @property {string} backMaterial   also the drawer bottoms
@@ -105,6 +111,9 @@ export const DEFAULT_SETTINGS = Object.freeze({
   worktop: true,
   worktopDepth: 600,
   worktopThickness: 38,
+  worktopOverhangLeft: 0,
+  worktopOverhangRight: 0,
+  worktopMaxLength: 4100,
   carcassMaterial: '',
   frontMaterial: '',
   backMaterial: '',
@@ -265,43 +274,89 @@ export function projectParts(cabinets, s) {
   const buildable = cabinets.filter((c) => cabinetProblems(c, s).length === 0);
   const parts = buildable.flatMap((c) => cabinetParts(c, s));
   if (s.worktop) {
-    for (const run of baseRuns(buildable)) {
-      parts.push({
-        type: 'worktop',
-        cabinet: run.map((c) => c.name).join(', '),
-        material: s.worktopMaterial,
-        length: round(run.reduce((sum, c) => sum + c.width, 0)),
-        width: round(s.worktopDepth),
-        qty: 1,
-        grain: true,
-        edges: { ...NO_EDGES },
-      });
+    for (const run of worktopRuns(buildable, s)) {
+      for (const piece of run.pieces) {
+        parts.push({
+          type: 'worktop',
+          cabinet: piece.cabinets.map((c) => c.name).join(', '),
+          material: s.worktopMaterial,
+          length: round(piece.length),
+          width: round(s.worktopDepth),
+          qty: 1,
+          grain: true,
+          edges: { ...NO_EDGES },
+        });
+      }
     }
   }
   return parts;
 }
 
 /**
- * Runs of base cabinets standing side by side on the floor, in list order.
- * Wall cabinets are not on the floor and do not break a run; a tall one does.
- * @param {Cabinet[]} cabinets
- * @returns {Cabinet[][]}
+ * @typedef {object} WorktopRun
+ * @property {Cabinet[]} cabinets  base cabinets side by side
+ * @property {number} before  overhang past the first cabinet, mm
+ * @property {number} after   overhang past the last cabinet, mm
+ * @property {{ length: number, cabinets: Cabinet[] }[]} pieces  left to right
  */
-export function baseRuns(cabinets) {
-  /** @type {Cabinet[][]} */
+
+/**
+ * The worktop over each run of base cabinets standing side by side on the
+ * floor, in list order. Wall cabinets are not on the floor and do not break
+ * a run; a tall one does, and the worktop stops flush against it.
+ * @param {Cabinet[]} cabinets
+ * @param {Settings} s
+ * @returns {WorktopRun[]}
+ */
+export function worktopRuns(cabinets, s) {
+  const floor = cabinets.filter((c) => c.kind !== 'wall');
+  /** @type {WorktopRun[]} */
   const runs = [];
-  /** @type {Cabinet[]} */
-  let run = [];
-  for (const c of cabinets) {
-    if (c.kind === 'wall') continue;
-    if (c.kind === 'base') run.push(c);
-    else if (run.length) {
-      runs.push(run);
-      run = [];
+  for (let i = 0; i < floor.length; ) {
+    if (floor[i].kind !== 'base') {
+      i++;
+      continue;
     }
+    const first = i;
+    while (i < floor.length && floor[i].kind === 'base') i++;
+    const run = floor.slice(first, i);
+    const before = first === 0 ? s.worktopOverhangLeft : 0;
+    const after = i === floor.length ? s.worktopOverhangRight : 0;
+    runs.push({ cabinets: run, before, after, pieces: splitWorktop(run, before, after, s.worktopMaxLength) });
   }
-  if (run.length) runs.push(run);
   return runs;
+}
+
+/**
+ * Cut a run's worktop into pieces no longer than `max`, joining over a
+ * cabinet side: as many whole cabinets per piece as fit. A single cabinet
+ * longer than `max` (unusual) is split into equal pieces.
+ * @param {Cabinet[]} run
+ * @param {number} before  overhang at the start
+ * @param {number} after   overhang at the end
+ * @param {number} max
+ */
+export function splitWorktop(run, before, after, max) {
+  const limit = max > 0 ? max : Infinity;
+  /** @type {{ length: number, cabinets: Cabinet[] }[]} */
+  const pieces = [];
+  /** @type {{ length: number, cabinets: Cabinet[] } | null} */
+  let piece = null;
+  run.forEach((c, i) => {
+    const span = c.width + (i === 0 ? before : 0) + (i === run.length - 1 ? after : 0);
+    if (piece && piece.length + span <= limit) {
+      piece.length += span;
+      piece.cabinets.push(c);
+    } else {
+      piece = { length: span, cabinets: [c] };
+      pieces.push(piece);
+    }
+  });
+  return pieces.flatMap((p) => {
+    if (p.length <= limit) return [p];
+    const n = Math.ceil(p.length / limit);
+    return Array.from({ length: n }, () => ({ length: p.length / n, cabinets: p.cabinets }));
+  });
 }
 
 /**

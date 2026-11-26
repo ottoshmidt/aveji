@@ -205,6 +205,34 @@ describe('worktop', () => {
     assert.deepEqual(worktops([cab('W1', 'wall', 600)]), []);
   });
 
+  it('overhangs at the ends of the kitchen, but not against a tall cabinet', () => {
+    const o = { ...s, worktopOverhangLeft: 20, worktopOverhangRight: 30 };
+    assert.deepEqual(worktops([cab('B1', 'base', 600), cab('B2', 'base', 600)], o).map((t) => t.length), [1250]);
+    // Tall cabinet on the right: no overhang there.
+    assert.deepEqual(worktops([cab('B1', 'base', 600), cab('T1', 'tall', 600)], o).map((t) => t.length), [620]);
+    // Tall cabinet in the middle: each run overhangs only at its outer end.
+    assert.deepEqual(worktops([cab('B1', 'base', 600), cab('T1', 'tall', 600), cab('B2', 'base', 600)], o).map((t) => t.length), [620, 630]);
+  });
+
+  it('is cut into pieces no longer than the material, joining over a cabinet side', () => {
+    const run = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7'].map((n) => cab(n, 'base', 800)); // 5600 mm
+    const tops = worktops(run, { ...s, worktopMaxLength: 3050 });
+    assert.deepEqual(tops.map((t) => t.length), [2400, 2400, 800]);
+    assert.deepEqual(tops.map((t) => t.cabinet), ['B1, B2, B3', 'B4, B5, B6', 'B7']);
+    assert.ok(tops.every((t) => t.length <= 3050));
+  });
+
+  it('counts the overhangs when cutting', () => {
+    const run = [cab('B1', 'base', 1000), cab('B2', 'base', 1000), cab('B3', 'base', 1000)];
+    // 20 + 3000 + 20 = 3040 fits in one 3050 piece; with 40 mm ends it does not.
+    assert.deepEqual(worktops(run, { ...s, worktopMaxLength: 3050, worktopOverhangLeft: 20, worktopOverhangRight: 20 }).map((t) => t.length), [3040]);
+    assert.deepEqual(worktops(run, { ...s, worktopMaxLength: 3050, worktopOverhangLeft: 40, worktopOverhangRight: 40 }).map((t) => t.length), [2040, 1040]);
+  });
+
+  it('splits a single cabinet longer than the material into equal pieces', () => {
+    assert.deepEqual(worktops([cab('B1', 'base', 5000)], { ...s, worktopMaxLength: 3050 }).map((t) => t.length), [2500, 2500]);
+  });
+
   it('follows the depth setting, and skips cabinets with problems', () => {
     const tops = worktops([cab('B1', 'base', 600), cab('B2', 'base', 0)], { ...s, worktopDepth: 650 });
     assert.deepEqual([tops[0].length, tops[0].width], [600, 650]);

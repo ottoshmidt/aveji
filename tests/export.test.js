@@ -122,6 +122,15 @@ describe('front view', () => {
     assert.match(svg, /class="worktop" x="0" [^>]*width="600"/);
   });
 
+  it('draws the worktop with its overhangs and a line where pieces join', () => {
+    const cab = (id, width) => ({ id, name: id, kind: 'base', width, height: 720, depth: 560, partitions: 0, shelves: 0, doors: 1, drawers: 0 });
+    const s = { ...settings, worktopOverhangLeft: 20, worktopMaxLength: 1000 };
+    const svg = frontView([cab('A', 600), cab('B', 600)], s, { title: 'x' });
+    assert.match(svg, /class="worktop" x="-20" [^>]*width="1220"/);
+    assert.equal(svg.match(/class="seam"/g)?.length, 1);
+    assert.match(svg, /class="seam" x1="600"/);
+  });
+
   it('draws drawer faces above the doors', () => {
     const svg = frontView([{ id: 'a', name: 'A', kind: 'base', width: 600, height: 720, depth: 560, partitions: 0, shelves: 0, doors: 1, drawers: 2 }], settings, { title: 'x' });
     assert.equal(svg.match(/class="door"/g)?.length, 3);
