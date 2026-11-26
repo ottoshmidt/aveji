@@ -56,8 +56,8 @@ One common construction, with the numbers under "Construction and materials":
   partitions are then cut to fit inside each compartment, and "Shelves" is
   per section of each compartment. A tall cabinet with drawers and doors
   also has a board between the two.
-- A drawer box has two sides and two ends of 16 mm board, banded on the top
-  edge, on an HDF bottom, running on ball-bearing runners with 13 mm on each
+- A drawer box has two sides and two ends of the carcass board, banded on
+  the top edge, on an HDF bottom, running on ball-bearing runners with 13 mm on each
   side. It is as deep as the longest standard runner (250-600 mm, in 50 mm
   steps) that fits the cabinet, and 40 mm lower than its face.
 

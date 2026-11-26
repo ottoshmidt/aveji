@@ -124,7 +124,7 @@ describe('partitions', () => {
 });
 
 describe('drawers', () => {
-  const s = { ...settings, drawerMaterial: 'LDSP 16' };
+  const s = settings;
   const chest = { ...base, drawers: 3, doors: 0 };
   const parts = cabinetParts(chest, s);
 
@@ -137,11 +137,13 @@ describe('drawers', () => {
 
   it('have boxes between the runners, as deep as the longest runner that fits', () => {
     // Inside 564, less 2 * 13 for runners = 538 box width; 550 mm runner in 560.
+    // Sides and ends are the carcass material, the bottom the back material.
     const side = find(parts, 'boxSide');
     const end = find(parts, 'boxEnd');
     const bottom = find(parts, 'boxBottom');
-    assert.deepEqual([side.length, side.width, side.qty, side.material], [550, 197, 6, 'LDSP 16']);
-    assert.deepEqual([end.length, end.width, end.qty], [506, 197, 6]);
+    assert.deepEqual([side.length, side.width, side.qty, side.material], [550, 197, 6, 'LDSP 18']);
+    // Box ends between the sides, of the carcass board: 538 - 2 * 18.
+    assert.deepEqual([end.length, end.width, end.qty, end.material], [502, 197, 6, 'LDSP 18']);
     assert.deepEqual([bottom.length, bottom.width, bottom.qty, bottom.material, bottom.grain], [550, 538, 3, 'HDF 3', false]);
     assert.equal(side.edges.L1, '0.4');
   });

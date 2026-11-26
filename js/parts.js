@@ -26,7 +26,7 @@
  *     tall cabinet), `drawerFrontHeight` each, and the doors fill the rest;
  *     drawers alone share the height equally.
  *   - A drawer is a face (the visible front) on a box: two sides and two ends
- *     of `drawerBoard`, on a bottom of the back material, running on
+ *     of the carcass board, on a bottom of the back material, running on
  *     ball-bearing runners that need `runnerClearance` on each side. The box
  *     is as deep as the longest standard runner that fits, and 40 mm lower
  *     than its face.
@@ -54,7 +54,6 @@
  * @property {number} hangingRail    width of a wall cabinet's hanging rail, mm (0: none)
  * @property {number} backReveal     how much smaller the back is on each side, mm
  * @property {number} drawerFrontHeight  a drawer face's height above doors, mm
- * @property {number} drawerBoard    drawer box board thickness, mm
  * @property {number} runnerClearance  space for a drawer runner on each side, mm
  * @property {boolean} worktop        include the worktop in the cut list
  * @property {number} worktopDepth   mm
@@ -64,8 +63,7 @@
  * @property {number} worktopMaxLength  longest piece the material comes in, mm
  * @property {string} carcassMaterial
  * @property {string} frontMaterial
- * @property {string} backMaterial   also the drawer bottoms
- * @property {string} drawerMaterial drawer box sides and ends
+ * @property {string} backMaterial   also the drawer bottoms (drawer sides and ends are carcass)
  * @property {string} worktopMaterial
  * @property {string} carcassEdge    edge banding on carcass parts, e.g. '0.4'
  * @property {string} frontEdge      edge banding on doors, e.g. '1'
@@ -119,7 +117,6 @@ export const DEFAULT_SETTINGS = Object.freeze({
   hangingRail: 80,
   backReveal: 2,
   drawerFrontHeight: 150,
-  drawerBoard: 16,
   runnerClearance: 13,
   worktop: true,
   worktopDepth: 600,
@@ -130,7 +127,6 @@ export const DEFAULT_SETTINGS = Object.freeze({
   carcassMaterial: '',
   frontMaterial: '',
   backMaterial: '',
-  drawerMaterial: '',
   worktopMaterial: '',
   carcassEdge: '0.4',
   frontEdge: '1',
@@ -309,13 +305,14 @@ export function cabinetParts(cab, s) {
   if (d > 0) {
     // Drawer faces: the grain runs across the cabinet.
     add('drawerFace', s.frontMaterial, W - s.doorGap, drawerHeight, d, true, all);
-    const t = s.drawerBoard;
+    // The box is made of the carcass board.
+    const t = T;
     const boxWidth = inner - 2 * s.runnerClearance;
     const boxDepth = runnerLength(D) ?? 0;
     const boxHeight = drawerHeight - BOX_BELOW_FACE;
     const top = { ...NO_EDGES, L1: s.carcassEdge };
-    add('boxSide', s.drawerMaterial, boxDepth, boxHeight, 2 * d, true, top);
-    add('boxEnd', s.drawerMaterial, boxWidth - 2 * t, boxHeight, 2 * d, true, top);
+    add('boxSide', s.carcassMaterial, boxDepth, boxHeight, 2 * d, true, top);
+    add('boxEnd', s.carcassMaterial, boxWidth - 2 * t, boxHeight, 2 * d, true, top);
     add('boxBottom', s.backMaterial, boxDepth, boxWidth, d, false, NO_EDGES);
   }
   return parts;
@@ -354,7 +351,7 @@ export function cabinetProblems(cab, s) {
   if (d > 0) {
     if ((cab.partitions ?? 0) > 0) problems.push('problem.drawersAndPartitions');
     if (runnerLength(cab.depth) === undefined) problems.push('problem.tooShallowForDrawers');
-    if (cab.width - 2 * s.board - 2 * s.runnerClearance - 2 * s.drawerBoard < 50) problems.push('problem.tooNarrowForDrawers');
+    if (cab.width - 2 * s.board - 2 * s.runnerClearance - 2 * s.board < 50) problems.push('problem.tooNarrowForDrawers');
     if (drawerHeight - BOX_BELOW_FACE < 50 || (cab.doors > 0 && hPartitionsOf(cab) === 0 && doorHeight < 100)) problems.push('problem.tooManyDrawers');
   }
   if (hPartitionsOf(cab) > 0 && (doorArea(cab, s).compartment < 100 || (cab.doors > 0 && doorHeight < 100))) {

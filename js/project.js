@@ -38,7 +38,6 @@ export function newProject(lang) {
       carcassMaterial: t(lang, 'default.carcassMaterial'),
       frontMaterial: t(lang, 'default.frontMaterial'),
       backMaterial: t(lang, 'default.backMaterial'),
-      drawerMaterial: t(lang, 'default.drawerMaterial'),
       worktopMaterial: t(lang, 'default.worktopMaterial'),
     },
     cabinets: [],
