@@ -7,7 +7,9 @@
  *   - Base cabinet: a bottom, and two rails (front and back) instead of a top,
  *     since the worktop covers it.
  *   - Wall and tall cabinets: a top and a bottom. A tall cabinet stands on the
- *     floor and reaches the top of the wall cabinets.
+ *     floor and reaches the top of the wall cabinets. A wall cabinet also has a
+ *     hanging rail (`hangingRail` wide, 0 for none): a strip between the sides,
+ *     at the back under the top, that it hangs on.
  *   - Partitions (vertical boards) split the inside into equal sections. They
  *     stand on the bottom and reach the top (or the rails), full depth.
  *   - A tall cabinet can also have horizontal partitions: fixed boards between
@@ -49,6 +51,7 @@
  * @property {number} doorGap        gap between fronts and around them, mm
  * @property {number} shelfSetback   how far shelves sit back from the front, mm
  * @property {number} railWidth      width of a base cabinet's top rails, mm
+ * @property {number} hangingRail    width of a wall cabinet's hanging rail, mm (0: none)
  * @property {number} backReveal     how much smaller the back is on each side, mm
  * @property {number} drawerFrontHeight  a drawer face's height above doors, mm
  * @property {number} drawerBoard    drawer box board thickness, mm
@@ -96,7 +99,7 @@
 
 /**
  * @typedef {object} Part
- * @property {string} type      side, bottom, top, railFront, railBack, partition, hPartition, shelf, back, door,
+ * @property {string} type      side, bottom, top, railFront, railBack, hangingRail, partition, hPartition, shelf, back, door,
  *   drawerFace, boxSide, boxEnd, boxBottom, worktop
  * @property {string} cabinet   the cabinet's name (several, comma-separated, once merged)
  * @property {string} material
@@ -113,6 +116,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   doorGap: 3,
   shelfSetback: 20,
   railWidth: 100,
+  hangingRail: 80,
   backReveal: 2,
   drawerFrontHeight: 150,
   drawerBoard: 16,
@@ -285,6 +289,8 @@ export function cabinetParts(cab, s) {
     add('top', s.carcassMaterial, inner, D, 1, true, front);
     add('bottom', s.carcassMaterial, inner, D, 1, true, front);
   }
+  // Hidden inside at the back, so no banding.
+  if (cab.kind === 'wall' && s.hangingRail > 0) add('hangingRail', s.carcassMaterial, inner, s.hangingRail, 1, true, NO_EDGES);
   const p = cab.partitions ?? 0;
   const area = doorArea(cab, s);
   const rows = area.rows;

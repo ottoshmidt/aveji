@@ -69,6 +69,14 @@ describe('wall cabinet parts', () => {
     assert.equal(find(parts, 'railFront'), undefined);
   });
 
+  it('has a hanging rail at the back, unless its width is 0', () => {
+    const rail = find(parts, 'hangingRail');
+    assert.deepEqual([rail.length, rail.width, rail.qty, rail.material], [764, 80, 1, 'LDSP 18']);
+    assert.deepEqual(rail.edges, { L1: '', L2: '', W1: '', W2: '' });
+    assert.equal(find(cabinetParts(wall, { ...settings, hangingRail: 0 }), 'hangingRail'), undefined);
+    assert.equal(find(cabinetParts(base, settings), 'hangingRail'), undefined);
+  });
+
   it('splits the width between two doors, leaving the gaps', () => {
     const door = find(parts, 'door');
     assert.deepEqual([door.length, door.width, door.qty], [717, 397, 2]);

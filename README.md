@@ -34,7 +34,9 @@ One common construction, with the numbers under "Construction and materials":
 
 - Sides run the full height; the other carcass parts sit between them.
 - A base cabinet has a bottom and two rails (front and back) instead of a top.
-- A wall cabinet has a top and a bottom. So does a tall cabinet, which stands
+- A wall cabinet has a top and a bottom, and a hanging rail (80 mm wide by
+  default, 0 for none): a strip between the sides, at the back under the
+  top, that it hangs on. So does a tall cabinet, which stands
   on the floor and by default (2080 mm + 100 mm legs) reaches the top of the
   wall cabinets; in the front view, wall cabinets hang beside it.
 - Partitions (vertical boards) split the inside into equal sections; they
