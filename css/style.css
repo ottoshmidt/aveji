@@ -229,6 +229,16 @@ input[type='number'] {
   margin: 0;
 }
 
+/* Settings that belong to the checkbox above them. */
+.sub-fields {
+  grid-column: 1 / -1;
+  padding-left: 1.65rem;
+}
+
+.sub-fields[hidden] {
+  display: none;
+}
+
 .project-name {
   margin-top: 0.75rem;
 }

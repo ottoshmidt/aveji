@@ -129,6 +129,11 @@ function renderProjectList() {
   select.value = state.library.currentId;
 }
 
+/** The worktop's own settings show only while it is in the list. */
+function renderWorktopFields() {
+  $('#worktop-fields').hidden = !state.project.settings.worktop;
+}
+
 function renderProjectForm() {
   renderProjectList();
   /** @type {HTMLInputElement} */ ($('#project-name')).value = state.project.name;
@@ -137,6 +142,7 @@ function renderProjectForm() {
     if (input.type === 'checkbox') input.checked = Boolean(value);
     else input.value = String(value);
   }
+  renderWorktopFields();
   /** @type {HTMLInputElement} */ ($('#merge')).checked = state.merge;
   /** @type {HTMLSelectElement} */ ($('#delimiter')).value = state.delimiter;
 }
@@ -263,7 +269,10 @@ $('#settings').addEventListener('input', (e) => {
   const key = input.dataset.setting;
   if (!key) return;
   const settings = /** @type {Record<string, unknown>} */ (state.project.settings);
-  if (input.type === 'checkbox') settings[key] = input.checked;
+  if (input.type === 'checkbox') {
+    settings[key] = input.checked;
+    if (key === 'worktop') renderWorktopFields();
+  }
   else if (input.type === 'number') {
     const n = readNumber(input);
     if (!Number.isFinite(n)) return; // keep the last good value while typing
