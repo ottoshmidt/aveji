@@ -12,7 +12,6 @@
 import { frontHeights } from './parts.js';
 
 const LEGS = 100;
-const WORKTOP = 40;
 /** Gap between the worktop and the wall cabinets. */
 const SPLASH = 600;
 const FONT = 70;
@@ -27,6 +26,7 @@ const esc = (text) => text.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;
  * @returns {string} an <svg> element, or '' with no cabinets
  */
 export function frontView(cabinets, settings, labels) {
+  const WORKTOP = settings.worktopThickness ?? 38;
   // On the floor (base and tall, in list order) and on the wall.
   const floor = cabinets.filter((c) => c.kind !== 'wall');
   const wall = cabinets.filter((c) => c.kind === 'wall');

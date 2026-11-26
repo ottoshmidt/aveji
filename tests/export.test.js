@@ -87,6 +87,12 @@ describe('project', () => {
     assert.equal(readProjectFile('{"cabinets": []}', 'en'), null);
   });
 
+  it('keeps the worktop switch, and turns it on for projects from before it existed', () => {
+    assert.equal(sanitizeProject({ settings: { worktop: false }, cabinets: [] }, 'en')?.settings.worktop, false);
+    assert.equal(sanitizeProject({ settings: {}, cabinets: [] }, 'en')?.settings.worktop, true);
+    assert.equal(sanitizeProject({ settings: { worktop: 'yes' }, cabinets: [] }, 'en')?.settings.worktop, true);
+  });
+
   it('repairs damaged data with defaults', () => {
     const p = sanitizeProject({ settings: { board: 'x', doorGap: 2 }, cabinets: [{ kind: 'bogus', width: 500, shelves: -3 }, null] }, 'en');
     assert.equal(p?.settings.board, 18);

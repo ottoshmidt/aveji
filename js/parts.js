@@ -23,6 +23,11 @@
  *     is as deep as the longest standard runner that fits, and 40 mm lower
  *     than its face.
  *
+ * The worktop is one piece per run of base cabinets side by side (a tall
+ * cabinet between them starts a new run), as long as the run and
+ * `worktopDepth` deep. It can be left out of the list when it comes from
+ * elsewhere (stone, for example).
+ *
  * A part's `length` always runs along the grain (the board's texture) and
  * `width` across it. Edge banding is given per edge: L1 and L2 are the two
  * edges along the length, W1 and W2 the two along the width. L1 is the front
@@ -39,10 +44,14 @@
  * @property {number} drawerFrontHeight  a drawer face's height above doors, mm
  * @property {number} drawerBoard    drawer box board thickness, mm
  * @property {number} runnerClearance  space for a drawer runner on each side, mm
+ * @property {boolean} worktop        include the worktop in the cut list
+ * @property {number} worktopDepth   mm
+ * @property {number} worktopThickness  mm (for the drawing)
  * @property {string} carcassMaterial
  * @property {string} frontMaterial
  * @property {string} backMaterial   also the drawer bottoms
  * @property {string} drawerMaterial drawer box sides and ends
+ * @property {string} worktopMaterial
  * @property {string} carcassEdge    edge banding on carcass parts, e.g. '0.4'
  * @property {string} frontEdge      edge banding on doors, e.g. '1'
  */
@@ -73,7 +82,7 @@
 /**
  * @typedef {object} Part
  * @property {string} type      side, bottom, top, railFront, railBack, partition, shelf, back, door,
- *   drawerFace, boxSide, boxEnd, boxBottom
+ *   drawerFace, boxSide, boxEnd, boxBottom, worktop
  * @property {string} cabinet   the cabinet's name (several, comma-separated, once merged)
  * @property {string} material
  * @property {number} length    along the grain, mm
@@ -93,10 +102,14 @@ export const DEFAULT_SETTINGS = Object.freeze({
   drawerFrontHeight: 150,
   drawerBoard: 16,
   runnerClearance: 13,
+  worktop: true,
+  worktopDepth: 600,
+  worktopThickness: 38,
   carcassMaterial: '',
   frontMaterial: '',
   backMaterial: '',
   drawerMaterial: '',
+  worktopMaterial: '',
   carcassEdge: '0.4',
   frontEdge: '1',
 });
@@ -249,7 +262,46 @@ export function cabinetProblems(cab, s) {
  * @param {Settings} s
  */
 export function projectParts(cabinets, s) {
-  return cabinets.filter((c) => cabinetProblems(c, s).length === 0).flatMap((c) => cabinetParts(c, s));
+  const buildable = cabinets.filter((c) => cabinetProblems(c, s).length === 0);
+  const parts = buildable.flatMap((c) => cabinetParts(c, s));
+  if (s.worktop) {
+    for (const run of baseRuns(buildable)) {
+      parts.push({
+        type: 'worktop',
+        cabinet: run.map((c) => c.name).join(', '),
+        material: s.worktopMaterial,
+        length: round(run.reduce((sum, c) => sum + c.width, 0)),
+        width: round(s.worktopDepth),
+        qty: 1,
+        grain: true,
+        edges: { ...NO_EDGES },
+      });
+    }
+  }
+  return parts;
+}
+
+/**
+ * Runs of base cabinets standing side by side on the floor, in list order.
+ * Wall cabinets are not on the floor and do not break a run; a tall one does.
+ * @param {Cabinet[]} cabinets
+ * @returns {Cabinet[][]}
+ */
+export function baseRuns(cabinets) {
+  /** @type {Cabinet[][]} */
+  const runs = [];
+  /** @type {Cabinet[]} */
+  let run = [];
+  for (const c of cabinets) {
+    if (c.kind === 'wall') continue;
+    if (c.kind === 'base') run.push(c);
+    else if (run.length) {
+      runs.push(run);
+      run = [];
+    }
+  }
+  if (run.length) runs.push(run);
+  return runs;
 }
 
 /**

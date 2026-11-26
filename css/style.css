@@ -224,6 +224,11 @@ input[type='number'] {
   margin-top: 1rem;
 }
 
+.wide-check {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 .project-name {
   margin-top: 0.75rem;
 }

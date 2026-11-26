@@ -183,6 +183,34 @@ describe('tall cabinet', () => {
   });
 });
 
+describe('worktop', () => {
+  const s = { ...settings, worktopMaterial: 'Worktop 38' };
+  const cab = (name, kind, width) => ({ ...base, id: name, name, kind, width });
+  const worktops = (cabinets, settings = s) => projectParts(cabinets, settings).filter((p) => p.type === 'worktop');
+
+  it('is one piece per run of base cabinets, as long as the run', () => {
+    const tops = worktops([cab('B1', 'base', 600), cab('B2', 'base', 800), cab('W1', 'wall', 600), cab('B3', 'base', 450)]);
+    // Wall cabinets do not break a run.
+    assert.equal(tops.length, 1);
+    assert.deepEqual([tops[0].length, tops[0].width, tops[0].material, tops[0].cabinet], [1850, 600, 'Worktop 38', 'B1, B2, B3']);
+  });
+
+  it('starts a new piece after a tall cabinet', () => {
+    const tops = worktops([cab('B1', 'base', 600), cab('T1', 'tall', 600), cab('B2', 'base', 900)]);
+    assert.deepEqual(tops.map((t) => t.length), [600, 900]);
+  });
+
+  it('is left out when switched off, or without base cabinets', () => {
+    assert.deepEqual(worktops([cab('B1', 'base', 600)], { ...s, worktop: false }), []);
+    assert.deepEqual(worktops([cab('W1', 'wall', 600)]), []);
+  });
+
+  it('follows the depth setting, and skips cabinets with problems', () => {
+    const tops = worktops([cab('B1', 'base', 600), cab('B2', 'base', 0)], { ...s, worktopDepth: 650 });
+    assert.deepEqual([tops[0].length, tops[0].width], [600, 650]);
+  });
+});
+
 describe('problems', () => {
   it('finds none in a normal cabinet', () => {
     assert.deepEqual(cabinetProblems(base, settings), []);
@@ -216,7 +244,8 @@ describe('merging and totals', () => {
     const sides = merged.find((p) => p.type === 'side');
     assert.equal(sides.qty, 4);
     assert.equal(sides.cabinet, 'B1, B2');
-    assert.equal(merged.length, cabinetParts(base, settings).length);
+    // The same parts as one cabinet, plus the worktop over both.
+    assert.equal(merged.length, cabinetParts(base, settings).length + 1);
   });
 
   it('keeps parts apart when their banding differs', () => {

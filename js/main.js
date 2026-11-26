@@ -133,7 +133,9 @@ function renderProjectForm() {
   renderProjectList();
   /** @type {HTMLInputElement} */ ($('#project-name')).value = state.project.name;
   for (const input of /** @type {NodeListOf<HTMLInputElement>} */ (document.querySelectorAll('[data-setting]'))) {
-    input.value = String(/** @type {Record<string, unknown>} */ (state.project.settings)[input.dataset.setting ?? '']);
+    const value = /** @type {Record<string, unknown>} */ (state.project.settings)[input.dataset.setting ?? ''];
+    if (input.type === 'checkbox') input.checked = Boolean(value);
+    else input.value = String(value);
   }
   /** @type {HTMLInputElement} */ ($('#merge')).checked = state.merge;
   /** @type {HTMLSelectElement} */ ($('#delimiter')).value = state.delimiter;
@@ -254,7 +256,8 @@ $('#settings').addEventListener('input', (e) => {
   const key = input.dataset.setting;
   if (!key) return;
   const settings = /** @type {Record<string, unknown>} */ (state.project.settings);
-  if (input.type === 'number') {
+  if (input.type === 'checkbox') settings[key] = input.checked;
+  else if (input.type === 'number') {
     const n = readNumber(input);
     if (!Number.isFinite(n)) return; // keep the last good value while typing
     settings[key] = n;

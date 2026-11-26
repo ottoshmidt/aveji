@@ -39,6 +39,7 @@ export function newProject(lang) {
       frontMaterial: t(lang, 'default.frontMaterial'),
       backMaterial: t(lang, 'default.backMaterial'),
       drawerMaterial: t(lang, 'default.drawerMaterial'),
+      worktopMaterial: t(lang, 'default.worktopMaterial'),
     },
     cabinets: [],
   };
@@ -74,7 +75,9 @@ export function sanitizeProject(raw, lang) {
   /** @type {Record<string, any>} */
   const settings = { ...base.settings };
   for (const [key, fallback] of Object.entries(base.settings)) {
-    settings[key] = typeof fallback === 'number' ? num(r.settings[key], fallback) : str(r.settings[key], fallback);
+    const value = r.settings[key];
+    if (typeof fallback === 'boolean') settings[key] = typeof value === 'boolean' ? value : fallback;
+    else settings[key] = typeof fallback === 'number' ? num(value, fallback) : str(value, fallback);
   }
   const cabinets = r.cabinets
     .filter((/** @type {unknown} */ c) => c && typeof c === 'object')

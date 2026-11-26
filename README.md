@@ -52,6 +52,11 @@ One common construction, with the numbers under "Construction and materials":
   side. It is as deep as the longest standard runner (250-600 mm, in 50 mm
   steps) that fits the cabinet, and 40 mm lower than its face.
 
+The worktop is one piece per run of base cabinets side by side (a tall
+cabinet starts a new run): as long as the run, 600 mm deep by default, in
+its own material. Untick "Worktop in the cut list" when it is made
+elsewhere (stone, for example); the drawing shows it either way.
+
 A part's length runs along the grain. Edge banding is per edge: L1 and L2
 along the length (L1 is the front edge), W1 and W2 along the width.
 
