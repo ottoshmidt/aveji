@@ -89,7 +89,8 @@ function renderProjectForm() {
   /** @type {HTMLSelectElement} */ ($('#delimiter')).value = state.delimiter;
 }
 
-const CABINET_FIELDS = /** @type {const} */ (['width', 'height', 'depth', 'shelves', 'doors']);
+const INTEGER_FIELDS = new Set(['partitions', 'shelves', 'doors']);
+const CABINET_FIELDS = /** @type {const} */ (['width', 'height', 'depth', 'partitions', 'shelves', 'doors']);
 
 /** @param {import('./parts.js').Cabinet} cab @param {number} index */
 function cabinetCard(cab, index) {
@@ -98,7 +99,7 @@ function cabinetCard(cab, index) {
   li.dataset.id = cab.id;
   const last = index === state.project.cabinets.length - 1;
   const fields = CABINET_FIELDS.map((key) => {
-    const integer = key === 'shelves' || key === 'doors';
+    const integer = INTEGER_FIELDS.has(key);
     const unit = integer ? '' : `<span>${tr('mm')}</span>`;
     return `<label class="field"><span>${tr(key)}</span><span class="unit"><input data-field="${key}" type="number" min="0" step="${integer ? 1 : 0.5}" inputmode="${integer ? 'numeric' : 'decimal'}" value="${cab[key]}" />${unit}</span></label>`;
   }).join('');
@@ -219,7 +220,7 @@ $('#cabinets').addEventListener('input', (e) => {
   else {
     const n = readNumber(input);
     // An empty size counts as 0, so the cabinet shows "enter the width".
-    /** @type {Record<string, number>} */ (/** @type {unknown} */ (cab))[key] = Number.isFinite(n) ? (key === 'shelves' || key === 'doors' ? Math.max(0, Math.round(n)) : n) : 0;
+    /** @type {Record<string, number>} */ (/** @type {unknown} */ (cab))[key] = Number.isFinite(n) ? (INTEGER_FIELDS.has(key) ? Math.max(0, Math.round(n)) : n) : 0;
   }
   save();
   renderProblems();

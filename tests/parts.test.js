@@ -73,6 +73,33 @@ describe('wall cabinet parts', () => {
   });
 });
 
+describe('partitions', () => {
+  const split = { ...base, width: 800, partitions: 1, shelves: 2, doors: 2 };
+  const parts = cabinetParts(split, settings);
+
+  it('stand between the bottom and the rails, full depth, banded at the front', () => {
+    const p = find(parts, 'partition');
+    assert.deepEqual([p.length, p.width, p.qty], [684, 560, 1]);
+    assert.equal(p.edges.L1, '0.4');
+  });
+
+  it('split the shelves into equal sections, with shelves counted per section', () => {
+    const shelf = find(parts, 'shelf');
+    // Inside 800 - 2*18 = 764, less one partition = 746, two sections of 373.
+    assert.deepEqual([shelf.length, shelf.qty], [371, 4]);
+  });
+
+  it('are absent by default and from old projects', () => {
+    assert.equal(find(cabinetParts(base, settings), 'partition'), undefined);
+    const { partitions, ...old } = split;
+    assert.equal(find(cabinetParts(old, settings), 'partition'), undefined);
+  });
+
+  it('cannot leave sections narrower than 50 mm', () => {
+    assert.deepEqual(cabinetProblems({ ...split, partitions: 15, doors: 1 }, settings), ['problem.tooManyPartitions']);
+  });
+});
+
 describe('problems', () => {
   it('finds none in a normal cabinet', () => {
     assert.deepEqual(cabinetProblems(base, settings), []);

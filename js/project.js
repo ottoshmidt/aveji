@@ -87,6 +87,7 @@ export function sanitizeProject(raw, lang) {
         width: num(c.width, d.width),
         height: num(c.height, d.height),
         depth: num(c.depth, d.depth),
+        partitions: Math.max(0, Math.round(num(c.partitions, d.partitions))),
         shelves: Math.max(0, Math.round(num(c.shelves, d.shelves))),
         doors: Math.max(0, Math.round(num(c.doors, d.doors))),
       };

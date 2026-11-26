@@ -105,6 +105,11 @@ describe('front view', () => {
     assert.equal(frontView([], settings, { title: 'x' }), '');
   });
 
+  it('draws partitions as dashed lines', () => {
+    const svg = frontView([{ id: 'a', name: 'A', kind: 'base', width: 900, height: 720, depth: 560, partitions: 2, shelves: 0, doors: 3 }], settings, { title: 'x' });
+    assert.equal(svg.match(/class="partition"/g)?.length, 2);
+  });
+
   it('draws each cabinet and escapes names', () => {
     const svg = frontView(
       [
@@ -116,7 +121,11 @@ describe('front view', () => {
     );
     assert.equal(svg.match(/class="carcass"/g)?.length, 2);
     assert.equal(svg.match(/class="door"/g)?.length, 3);
+    assert.equal(svg.match(/class="partition"/g), null);
     assert.ok(svg.includes('A&lt;1&gt;'));
+    // Every attribute is a plain quoted value (no stray quotes).
+    assert.doesNotMatch(svg, /=""|"[^"\s=<>]*"[^\s/>]/);
+    assert.match(svg, /<text class="name" x="300" /);
     assert.ok(!svg.includes('NaN'));
   });
 });

@@ -7,7 +7,9 @@
  *   - Base cabinet: a bottom, and two rails (front and back) instead of a top,
  *     since the worktop covers it.
  *   - Wall cabinet: a top and a bottom.
- *   - Shelves sit on pins between the sides, set back from the front.
+ *   - Partitions (vertical boards) split the inside into equal sections. They
+ *     stand on the bottom and reach the top (or the rails), full depth.
+ *   - Shelves sit on pins in each section, set back from the front.
  *   - The back (HDF) is nailed onto the back edges, slightly smaller than the
  *     cabinet so it does not show.
  *   - Doors are full overlay, with `doorGap` between doors and around them.
@@ -39,7 +41,8 @@
  * @property {number} width
  * @property {number} height  carcass height, without legs
  * @property {number} depth
- * @property {number} shelves
+ * @property {number} partitions  vertical boards splitting the inside into sections
+ * @property {number} shelves     per section
  * @property {number} doors
  */
 
@@ -53,7 +56,7 @@
 
 /**
  * @typedef {object} Part
- * @property {string} type      side, bottom, top, railFront, railBack, shelf, back, door
+ * @property {string} type      side, bottom, top, railFront, railBack, partition, shelf, back, door
  * @property {string} cabinet   the cabinet's name (several, comma-separated, once merged)
  * @property {string} material
  * @property {number} length    along the grain, mm
@@ -79,8 +82,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
 
 /** Typical sizes for a new cabinet of each kind. */
 export const DEFAULT_CABINETS = Object.freeze({
-  base: Object.freeze({ width: 600, height: 720, depth: 560, shelves: 1, doors: 1 }),
-  wall: Object.freeze({ width: 600, height: 720, depth: 300, shelves: 2, doors: 1 }),
+  base: Object.freeze({ width: 600, height: 720, depth: 560, partitions: 0, shelves: 1, doors: 1 }),
+  wall: Object.freeze({ width: 600, height: 720, depth: 300, partitions: 0, shelves: 2, doors: 1 }),
 });
 
 /** Round to half a millimetre, which is as fine as a panel saw cuts. */
@@ -115,8 +118,10 @@ export function cabinetParts(cab, s) {
     add('top', s.carcassMaterial, inner, D, 1, true, front);
     add('bottom', s.carcassMaterial, inner, D, 1, true, front);
   }
+  const p = cab.partitions ?? 0;
+  add('partition', s.carcassMaterial, H - 2 * T, D, p, true, front);
   // Shelves on pins need a little play between the sides.
-  add('shelf', s.carcassMaterial, inner - 2, D - s.shelfSetback, cab.shelves, true, front);
+  add('shelf', s.carcassMaterial, sectionWidth(cab, s) - 2, D - s.shelfSetback, cab.shelves * (p + 1), true, front);
   add('back', s.backMaterial, H - 2 * s.backReveal, W - 2 * s.backReveal, 1, false, NO_EDGES);
   const n = cab.doors;
   if (n > 0) {
@@ -125,6 +130,17 @@ export function cabinetParts(cab, s) {
     add('door', s.frontMaterial, H - s.doorGap, doorWidth, n, true, all);
   }
   return parts;
+}
+
+/**
+ * Inside width of one section: the space between the sides, less the
+ * partitions, shared equally.
+ * @param {Cabinet} cab
+ * @param {Settings} s
+ */
+export function sectionWidth(cab, s) {
+  const p = cab.partitions ?? 0;
+  return (cab.width - 2 * s.board - p * s.board) / (p + 1);
 }
 
 /**
@@ -140,6 +156,8 @@ export function cabinetProblems(cab, s) {
   }
   if (problems.length) return problems;
   if (cab.width - 2 * s.board <= 2) problems.push('problem.tooNarrow');
+  else if ((cab.partitions ?? 0) > 0 && sectionWidth(cab, s) < 50) problems.push('problem.tooManyPartitions');
+  if (cab.height - 2 * s.board <= 0) problems.push('problem.tooLow');
   if (cab.depth - s.shelfSetback <= 0 && cab.shelves > 0) problems.push('problem.tooShallow');
   if (cab.doors > 0 && (cab.width - cab.doors * s.doorGap) / cab.doors < 50) problems.push('problem.tooManyDoors');
   return problems;

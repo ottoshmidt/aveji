@@ -61,6 +61,16 @@ export function frontView(cabinets, settings, labels) {
         out.push(`<line class="handle" x1="${hx}" y1="${y(hy)}" x2="${hx}" y2="${y(hy + (c.kind === 'wall' ? 120 : -120))}"/>`);
       }
     }
+    // Partitions, hidden behind the doors: dashed, like a hidden edge.
+    const p = c.partitions ?? 0;
+    if (p > 0) {
+      const T = settings.board;
+      const section = (c.width - 2 * T - p * T) / (p + 1);
+      for (let i = 1; i <= p; i++) {
+        const px = x + T + i * section + (i - 1) * T + T / 2;
+        out.push(`<line class="partition" x1="${px}" y1="${y(top - T)}" x2="${px}" y2="${y(bottom + T)}"/>`);
+      }
+    }
     out.push(`<text class="name" x="${x + c.width / 2}" y="${y(bottom + c.height / 2)}">${esc(c.name)}</text>`);
     const dy = dimension === 'below' ? y(0) + FONT * 1.6 : y(top) - FONT * 0.8;
     out.push(`<text class="size" x="${x + c.width / 2}" y="${dy}">${c.width}</text>`);

@@ -317,6 +317,13 @@ input[type='number'] {
   stroke-width: 3;
 }
 
+.drawing .partition {
+  stroke: var(--text);
+  stroke-width: 4;
+  stroke-dasharray: 24 16;
+  opacity: 0.6;
+}
+
 .drawing .handle {
   stroke: var(--text);
   stroke-width: 12;

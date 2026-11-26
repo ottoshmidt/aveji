@@ -20,7 +20,10 @@ One common construction, with the numbers under "Construction and materials":
 - Sides run the full height; the other carcass parts sit between them.
 - A base cabinet has a bottom and two rails (front and back) instead of a top.
 - A wall cabinet has a top and a bottom.
-- Shelves sit on pins between the sides (2 mm play), set back from the front.
+- Partitions (vertical boards) split the inside into equal sections; they
+  stand on the bottom and reach the top or the rails, full depth.
+- Shelves sit on pins in each section (2 mm play), set back from the front;
+  the shelf count is per section.
 - The back (HDF) is nailed on, a little smaller than the cabinet.
 - Doors are full overlay, with the door gap between and around them.
 
