@@ -96,7 +96,7 @@ const STRINGS = {
     copyTable: 'ცხრილის კოპირება Excel-ში ჩასასმელად',
     copied: 'დაკოპირდა. ჩასვით Excel-ში ან Google Sheets-ში.',
     copyFailed: 'კოპირება ვერ მოხერხდა. გამოიყენეთ CSV.',
-    print: 'ბეჭდვა',
+    print: 'ბეჭდვა / PDF',
   },
   en: {
     tagline: 'Kitchen cabinets and cut lists for the workshop',
@@ -186,7 +186,7 @@ const STRINGS = {
     copyTable: 'Copy the table to paste into Excel',
     copied: 'Copied. Paste it into Excel or Google Sheets.',
     copyFailed: 'Could not copy. Use the CSV instead.',
-    print: 'Print',
+    print: 'Print / PDF',
   },
   ru: {
     tagline: 'Кухонные шкафы и список деталей для цеха',
@@ -276,7 +276,7 @@ const STRINGS = {
     copyTable: 'Скопировать таблицу для вставки в Excel',
     copied: 'Скопировано. Вставьте в Excel или Google Sheets.',
     copyFailed: 'Не удалось скопировать. Используйте CSV.',
-    print: 'Печать',
+    print: 'Печать / PDF',
   },
 };
 

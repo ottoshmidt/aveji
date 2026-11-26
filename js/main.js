@@ -315,6 +315,15 @@ $('#copy-table').addEventListener('click', async () => {
 
 $('#print').addEventListener('click', () => window.print());
 
+// Browsers name a saved PDF after the page title, so use the project name
+// while printing (also for Ctrl+P).
+window.addEventListener('beforeprint', () => {
+  document.title = state.project.name.trim() || 'Aveji';
+});
+window.addEventListener('afterprint', () => {
+  document.title = 'Aveji';
+});
+
 $('#save-file').addEventListener('click', () => {
   download(projectFile(state.project), `${baseName()}.aveji.json`, 'application/json');
 });
