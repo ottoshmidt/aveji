@@ -4,6 +4,9 @@ import {
   cabinetParts,
   cabinetProblems,
   DEFAULT_CABINETS,
+  doorArea,
+  frontLayout,
+  hasDivider,
   DEFAULT_SETTINGS,
   frontHeights,
   hasShelves,
@@ -153,7 +156,7 @@ describe('drawers', () => {
     // 720 - (150 + 3) - 3
     assert.equal(find(mixed, 'door').length, 564);
     assert.equal(find(mixed, 'shelf').qty, 1);
-    assert.deepEqual(frontHeights({ ...base, drawers: 1, doors: 1 }, s), { drawerHeight: 150, doorHeight: 564 });
+    assert.deepEqual(frontHeights({ ...base, drawers: 1, doors: 1 }, s), { drawerHeight: 150, doorHeight: 564, rows: 1 });
   });
 
   it('refuse what cannot be built', () => {
@@ -180,6 +183,76 @@ describe('tall cabinet', () => {
     assert.equal(find(parts, 'railFront'), undefined);
     assert.equal(find(parts, 'door').length, 2077);
     assert.equal(find(parts, 'shelf').qty, 4);
+  });
+});
+
+describe('drawers above or below the doors', () => {
+  it('go above in base and wall cabinets, and below in tall ones, by default', () => {
+    const f = frontLayout({ ...base, drawers: 1, doors: 1 }, settings);
+    assert.deepEqual(f.map((x) => [x.kind, x.y]), [['drawer', 568.5], ['door', 1.5]]);
+    const tall = { id: 't', name: 'T', kind: 'tall', ...DEFAULT_CABINETS.tall, drawers: 2 };
+    assert.deepEqual(frontLayout(tall, settings).map((x) => [x.kind, x.y]), [['door', 307.5], ['drawer', 154.5], ['drawer', 1.5]]);
+  });
+
+  it('follow the choice, with the same sizes either way', () => {
+    const below = { ...base, drawers: 1, doors: 1, drawersAt: 'bottom' };
+    assert.deepEqual(frontLayout(below, settings).map((x) => [x.kind, x.y, x.height]), [['door', 154.5, 564], ['drawer', 1.5, 150]]);
+    assert.deepEqual(cabinetParts(below, settings), cabinetParts({ ...below, drawersAt: 'top' }, settings));
+  });
+
+  it('leave 1.5 mm at the top and bottom and 3 mm between fronts', () => {
+    const f = frontLayout({ ...base, drawers: 3, doors: 0 }, settings);
+    assert.equal(f[0].y + f[0].height, 720 - 1.5);
+    assert.equal(f.at(-1).y, 1.5);
+  });
+});
+
+describe('tall cabinet compartments', () => {
+  const tall = { id: 't', name: 'T', kind: 'tall', ...DEFAULT_CABINETS.tall };
+
+  it('split the door area with horizontal partitions, each compartment with its own doors', () => {
+    const parts = cabinetParts({ ...tall, hPartitions: 1, doors: 2 }, settings);
+    const h = find(parts, 'hPartition');
+    assert.deepEqual([h.length, h.width, h.qty, h.edges.L1], [564, 560, 1, '0.4']);
+    const door = find(parts, 'door');
+    // (2080 - 2 * 3) / 2 = 1037 high; 2 side by side in each of 2 rows.
+    assert.deepEqual([door.length, door.width, door.qty], [1037, 297, 4]);
+    // Shelves per section, in each compartment.
+    assert.equal(find(parts, 'shelf').qty, 8);
+  });
+
+  it('cut vertical partitions to fit inside each compartment', () => {
+    const p = find(cabinetParts({ ...tall, hPartitions: 1, partitions: 1 }, settings), 'partition');
+    // Inside 2044, less one board, in two: 1013.
+    assert.deepEqual([p.length, p.qty], [1013, 2]);
+  });
+
+  it('stacks the doors one above the other in the layout', () => {
+    const f = frontLayout({ ...tall, hPartitions: 2 }, settings);
+    assert.equal(f.length, 3);
+    assert.ok(f[0].y > f[1].y && f[1].y > f[2].y);
+  });
+
+  it('has a board between drawers and doors', () => {
+    const withDrawers = { ...tall, drawers: 2 };
+    const parts = cabinetParts(withDrawers, settings);
+    assert.equal(find(parts, 'hPartition').qty, 1);
+    assert.equal(find(parts, 'door').length, 1771);
+    assert.equal(hasDivider(withDrawers), true);
+    // The door area starts above the drawers: 2 * (150 + 3).
+    assert.deepEqual(doorArea(withDrawers, settings), { start: 306, height: 1756, compartment: 1756, rows: 1 });
+    // No board in a base cabinet with a drawer above a door.
+    assert.equal(find(cabinetParts({ ...base, drawers: 1 }, settings), 'hPartition'), undefined);
+  });
+
+  it('are only for tall cabinets', () => {
+    assert.equal(find(cabinetParts({ ...wall, hPartitions: 2 }, settings), 'hPartition'), undefined);
+    assert.equal(find(cabinetParts({ ...wall, hPartitions: 2 }, settings), 'door').qty, 2);
+  });
+
+  it('cannot be too many for the height', () => {
+    assert.deepEqual(cabinetProblems({ ...tall, hPartitions: 30 }, settings), ['problem.tooManyHPartitions']);
+    assert.deepEqual(cabinetProblems({ ...tall, hPartitions: 3 }, settings), []);
   });
 });
 

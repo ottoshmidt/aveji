@@ -92,9 +92,11 @@ export function sanitizeProject(raw, lang) {
         height: num(c.height, d.height),
         depth: num(c.depth, d.depth),
         partitions: Math.max(0, Math.round(num(c.partitions, d.partitions))),
+        hPartitions: Math.max(0, Math.round(num(c.hPartitions, d.hPartitions))),
         shelves: Math.max(0, Math.round(num(c.shelves, d.shelves))),
         doors: Math.max(0, Math.round(num(c.doors, d.doors))),
         drawers: Math.max(0, Math.round(num(c.drawers, d.drawers))),
+        drawersAt: c.drawersAt === 'top' || c.drawersAt === 'bottom' ? c.drawersAt : d.drawersAt,
       };
     });
   return { name: str(r.name, ''), settings: /** @type {any} */ (settings), cabinets };

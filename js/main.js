@@ -8,7 +8,7 @@
 import { csvFile, toDelimited } from './csv.js';
 import { frontView } from './drawing.js';
 import { detectLanguage, LANGUAGES, t } from './i18n.js';
-import { cabinetProblems, hasShelves, KINDS, mergeParts, projectParts, totals } from './parts.js';
+import { cabinetProblems, drawersAtOf, hasShelves, KINDS, mergeParts, projectParts, totals } from './parts.js';
 import { addProject, backupFile, copyProject, currentEntry, readBackupFile, removeCurrent, restore, sanitizeLibrary, sortedEntries } from './library.js';
 import { newCabinet, newId, newProject } from './project.js';
 import { COLUMNS, cutListTable, NUMERIC } from './table.js';
@@ -141,8 +141,10 @@ function renderProjectForm() {
   /** @type {HTMLSelectElement} */ ($('#delimiter')).value = state.delimiter;
 }
 
-const INTEGER_FIELDS = new Set(['partitions', 'shelves', 'doors', 'drawers']);
-const CABINET_FIELDS = /** @type {const} */ (['width', 'height', 'depth', 'partitions', 'shelves', 'doors', 'drawers']);
+const INTEGER_FIELDS = new Set(['partitions', 'hPartitions', 'shelves', 'doors', 'drawers']);
+const CABINET_FIELDS = /** @type {const} */ (['width', 'height', 'depth', 'partitions', 'hPartitions', 'shelves', 'doors', 'drawers']);
+/** Fields only some kinds of cabinet have. */
+const ONLY_FOR = /** @type {Record<string, string>} */ ({ hPartitions: 'tall' });
 
 /** @param {import('./parts.js').Cabinet} cab @param {number} index */
 function cabinetCard(cab, index) {
@@ -150,11 +152,16 @@ function cabinetCard(cab, index) {
   li.className = `cabinet ${cab.kind}`;
   li.dataset.id = cab.id;
   const last = index === state.project.cabinets.length - 1;
-  const fields = CABINET_FIELDS.map((key) => {
+  const numbers = CABINET_FIELDS.filter((key) => !ONLY_FOR[key] || ONLY_FOR[key] === cab.kind).map((key) => {
     const integer = INTEGER_FIELDS.has(key);
     const unit = integer ? '' : `<span>${tr('mm')}</span>`;
-    return `<label class="field"><span>${tr(key)}</span><span class="unit"><input data-field="${key}" type="number" min="0" step="${integer ? 1 : 0.5}" inputmode="${integer ? 'numeric' : 'decimal'}" value="${cab[key]}" />${unit}</span></label>`;
-  }).join('');
+    return `<label class="field"><span>${tr(key)}</span><span class="unit"><input data-field="${key}" type="number" min="0" step="${integer ? 1 : 0.5}" inputmode="${integer ? 'numeric' : 'decimal'}" value="${cab[key] ?? 0}" />${unit}</span></label>`;
+  });
+  const at = drawersAtOf(cab);
+  const placement = `<label class="field"><span>${tr('drawersAt')}</span><select data-field="drawersAt">${['top', 'bottom']
+    .map((v) => `<option value="${v}"${v === at ? ' selected' : ''}>${tr(`drawersAt.${v}`)}</option>`)
+    .join('')}</select></label>`;
+  const fields = [...numbers, placement].join('');
   li.innerHTML = `
     <div class="cabinet-head">
       <span class="kind">${tr(`kind.${cab.kind}`)}</span>
@@ -276,6 +283,7 @@ $('#cabinets').addEventListener('input', (e) => {
   const key = input.dataset.field;
   if (!cab || !key) return;
   if (key === 'name') cab.name = input.value;
+  else if (key === 'drawersAt') cab.drawersAt = input.value === 'top' ? 'top' : 'bottom';
   else {
     const n = readNumber(input);
     // An empty size counts as 0, so the cabinet shows "enter the width".

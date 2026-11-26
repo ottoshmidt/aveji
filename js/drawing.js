@@ -9,7 +9,7 @@
  * Units are millimetres; the SVG scales to fit its box.
  */
 
-import { frontHeights, worktopRuns } from './parts.js';
+import { doorArea, drawersAtOf, frontLayout, hasDivider, worktopRuns } from './parts.js';
 
 const LEGS = 100;
 /** Gap between the worktop and the wall cabinets. */
@@ -92,44 +92,43 @@ export function frontView(cabinets, settings, labels) {
   const cabinet = (c, x, bottom) => {
     const top = bottom + c.height;
     out.push(`<rect class="carcass" x="${x}" y="${y(top)}" width="${c.width}" height="${c.height}"/>`);
-    const { drawerHeight, doorHeight } = frontHeights(c, settings);
-    // Drawer faces from the top, each with a handle across its middle.
-    let faceTop = top - gap / 2;
-    for (let i = 0; i < (c.drawers ?? 0); i++) {
-      out.push(`<rect class="door" x="${x + gap / 2}" y="${y(faceTop)}" width="${c.width - gap}" height="${drawerHeight}"/>`);
-      const hy = faceTop - Math.min(60, drawerHeight / 2);
-      handle(x + c.width / 2 - 80, hy, x + c.width / 2 + 80, hy);
-      faceTop -= drawerHeight + gap;
-    }
-    const n = c.doors;
-    if (n > 0) {
-      const doorWidth = (c.width - n * gap) / n;
-      const doorBottom = faceTop - doorHeight;
-      for (let i = 0; i < n; i++) {
-        const dx = x + gap / 2 + i * (doorWidth + gap);
-        out.push(`<rect class="door" x="${dx}" y="${y(faceTop)}" width="${doorWidth}" height="${doorHeight}"/>`);
-        // Handle on the opening side: doors in a pair open from the middle.
-        // Wall doors: near the bottom; others: near the top, or at hand
-        // height on a tall cabinet.
-        const left = n === 1 ? false : i % 2 === 1;
-        const hx = left ? dx + 40 : dx + doorWidth - 40;
-        if (c.kind === 'wall') handle(hx, doorBottom + 60, hx, doorBottom + 180);
-        else if (c.kind === 'tall') {
-          const mid = Math.min(faceTop - 60, Math.max(doorBottom + 120, 1000));
-          handle(hx, mid - 60, hx, mid + 60);
-        } else handle(hx, faceTop - 60, hx, faceTop - 180);
+    for (const f of frontLayout(c, settings)) {
+      const fx = x + f.x;
+      const fBottom = bottom + f.y;
+      const fTop = fBottom + f.height;
+      out.push(`<rect class="door" x="${fx}" y="${y(fTop)}" width="${f.width}" height="${f.height}"/>`);
+      if (f.kind === 'drawer') {
+        // A drawer handle runs across, near the top of the face.
+        const hy = fTop - Math.min(60, f.height / 2);
+        handle(x + c.width / 2 - 80, hy, x + c.width / 2 + 80, hy);
+        continue;
       }
+      // A door handle is on the opening side (a pair opens from the middle):
+      // near the bottom of a wall door, near the top of a base door, and at
+      // hand height (about 1 m from the floor) on a tall cabinet's door.
+      const left = f.columns === 1 ? false : f.column % 2 === 1;
+      const hx = left ? fx + 40 : fx + f.width - 40;
+      if (c.kind === 'wall') handle(hx, fBottom + 60, hx, fBottom + 180);
+      else if (c.kind === 'tall') {
+        const mid = Math.min(fTop - 90, Math.max(fBottom + 90, 1000));
+        handle(hx, mid - 60, hx, mid + 60);
+      } else handle(hx, fTop - 60, hx, fTop - 180);
     }
     // Partitions, hidden behind the fronts: dashed, like a hidden edge.
+    const T = settings.board;
+    const area = doorArea(c, settings);
     const p = c.partitions ?? 0;
     if (p > 0) {
-      const T = settings.board;
       const section = (c.width - 2 * T - p * T) / (p + 1);
       for (let i = 1; i <= p; i++) {
         const px = x + T + i * section + (i - 1) * T + T / 2;
-        out.push(`<line class="partition" x1="${px}" y1="${y(top - T)}" x2="${px}" y2="${y(bottom + T)}"/>`);
+        out.push(`<line class="partition" x1="${px}" y1="${y(bottom + area.start + area.height)}" x2="${px}" y2="${y(bottom + area.start)}"/>`);
       }
     }
+    /** @param {number} h  height of a horizontal board's middle above the cabinet's underside */
+    const board = (h) => out.push(`<line class="partition" x1="${x + T}" y1="${y(bottom + h)}" x2="${x + c.width - T}" y2="${y(bottom + h)}"/>`);
+    for (let i = 1; i < area.rows; i++) board(area.start + i * area.compartment + (i - 1) * T + T / 2);
+    if (hasDivider(c)) board(drawersAtOf(c) === 'bottom' ? area.start - T / 2 : area.start + area.height + T / 2);
     out.push(`<text class="name" x="${x + c.width / 2}" y="${y(bottom + c.height / 2)}">${esc(c.name)}</text>`);
     const dy = c.kind === 'wall' ? y(top) - FONT * 0.8 : y(0) + FONT * 1.6;
     out.push(`<text class="size" x="${x + c.width / 2}" y="${dy}">${c.width}</text>`);

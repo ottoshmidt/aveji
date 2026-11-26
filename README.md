@@ -43,10 +43,17 @@ One common construction, with the numbers under "Construction and materials":
   the shelf count ("Shelves") is per section.
 - The back (HDF) is nailed on, a little smaller than the cabinet.
 - Doors are full overlay, with the door gap between and around them.
-- Drawers go at the top: with doors, each drawer face is 150 mm high and the
-  doors fill the rest; without doors the drawers share the height (and the
-  cabinet has no shelves). Partitions and drawers in one cabinet are not
-  supported yet.
+- Drawers go above or below the doors ("Drawers" on each cabinet; below by
+  default in a tall cabinet): with doors, each drawer face is 150 mm high
+  and the doors fill the rest; without doors the drawers share the height
+  (and the cabinet has no shelves). Partitions and drawers in one cabinet
+  are not supported yet.
+- A tall cabinet can have horizontal partitions: fixed boards between the
+  sides that split the door area into equal compartments, one above the
+  other, each with its own row of doors ("Doors" is per row). Vertical
+  partitions are then cut to fit inside each compartment, and "Shelves" is
+  per section of each compartment. A tall cabinet with drawers and doors
+  also has a board between the two.
 - A drawer box has two sides and two ends of 16 mm board, banded on the top
   edge, on an HDF bottom, running on ball-bearing runners with 13 mm on each
   side. It is as deep as the longest standard runner (250-600 mm, in 50 mm

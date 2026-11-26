@@ -87,6 +87,13 @@ describe('project', () => {
     assert.equal(readProjectFile('{"cabinets": []}', 'en'), null);
   });
 
+  it('keeps where the drawers go, defaulting by kind', () => {
+    const p = sanitizeProject({ settings: {}, cabinets: [{ kind: 'tall' }, { kind: 'base' }, { kind: 'base', drawersAt: 'bottom', hPartitions: 2 }, { kind: 'wall', drawersAt: 'sideways' }] }, 'en');
+    assert.deepEqual(p?.cabinets.map((c) => c.drawersAt), ['bottom', 'top', 'bottom', 'top']);
+    assert.equal(p?.cabinets[2].hPartitions, 2);
+    assert.equal(p?.cabinets[0].hPartitions, 0);
+  });
+
   it('keeps the worktop switch, and turns it on for projects from before it existed', () => {
     assert.equal(sanitizeProject({ settings: { worktop: false }, cabinets: [] }, 'en')?.settings.worktop, false);
     assert.equal(sanitizeProject({ settings: {}, cabinets: [] }, 'en')?.settings.worktop, true);
@@ -129,6 +136,13 @@ describe('front view', () => {
     assert.match(svg, /class="worktop" x="-20" [^>]*width="1220"/);
     assert.equal(svg.match(/class="seam"/g)?.length, 1);
     assert.match(svg, /class="seam" x1="600"/);
+  });
+
+  it('draws horizontal partitions and the drawer board of a tall cabinet', () => {
+    const svg = frontView([{ id: 't', name: 'T', kind: 'tall', width: 600, height: 2080, depth: 560, partitions: 0, hPartitions: 1, shelves: 0, doors: 1, drawers: 1, drawersAt: 'bottom' }], settings, { title: 'x' });
+    assert.equal(svg.match(/class="partition"/g)?.length, 2);
+    assert.equal(svg.match(/class="door"/g)?.length, 3);
+    assert.ok(!svg.includes('NaN'));
   });
 
   it('draws drawer faces above the doors', () => {
