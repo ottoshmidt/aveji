@@ -46,9 +46,11 @@ One common construction, with the numbers under "Construction and materials":
 - The back (HDF) is nailed on, a little smaller than the cabinet.
 - Doors are full overlay, with the door gap between and around them.
 - Drawers go above or below the doors ("Drawers" on each cabinet; below by
-  default in a tall cabinet): with doors, each drawer face is 150 mm high
-  and the doors fill the rest; without doors the drawers share the height
-  (and the cabinet has no shelves). Partitions and drawers in one cabinet
+  default in a tall cabinet). "Drawer heights" gives each drawer's face
+  height from the top, e.g. "140, 280, 280". A drawer without one is
+  150 mm next to doors; without doors, the drawers without one share what
+  is left (and the cabinet has no shelves), and if every drawer has a
+  height they must add up to the cabinet's height. The doors fill the rest. Partitions and drawers in one cabinet
   are not supported yet.
 - A tall cabinet can have horizontal partitions: fixed boards between the
   sides that split the door area into equal compartments, one above the

@@ -91,6 +91,8 @@ describe('project', () => {
     const p = sanitizeProject({ settings: {}, cabinets: [{ kind: 'tall' }, { kind: 'base' }, { kind: 'base', drawersAt: 'bottom', hPartitions: 2 }, { kind: 'wall', drawersAt: 'sideways' }] }, 'en');
     assert.deepEqual(p?.cabinets.map((c) => c.drawersAt), ['bottom', 'top', 'bottom', 'top']);
     assert.equal(p?.cabinets[2].hPartitions, 2);
+    assert.deepEqual(p?.cabinets.map((c) => c.drawerHeights), ['', '', '', '']);
+    assert.equal(sanitizeProject({ settings: {}, cabinets: [{ drawerHeights: '140, 280' }] }, 'en')?.cabinets[0].drawerHeights, '140, 280');
     assert.equal(p?.cabinets[0].hPartitions, 0);
   });
 

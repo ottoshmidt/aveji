@@ -23,8 +23,10 @@
  *     cabinet so it does not show.
  *   - Fronts are full overlay, with `doorGap` between them and around them.
  *     Drawers go above or below the doors (`drawersAt`; below by default in a
- *     tall cabinet), `drawerFrontHeight` each, and the doors fill the rest;
- *     drawers alone share the height equally.
+ *     tall cabinet). Each cabinet can give its drawers' face heights from the
+ *     top (`drawerHeights`, e.g. "140, 280, 280"); a drawer without one is
+ *     150 mm next to doors, and without doors the drawers without one share
+ *     what is left. The doors fill the rest.
  *   - A drawer is a face (the visible front) on a box: two sides and two ends
  *     of the carcass board, on a bottom of the back material, running on
  *     ball-bearing runners that need `runnerClearance` on each side. The box
@@ -53,7 +55,6 @@
  * @property {number} railWidth      width of a base cabinet's top rails, mm
  * @property {number} hangingRail    width of a wall cabinet's hanging rail, mm (0: none)
  * @property {number} backReveal     how much smaller the back is on each side, mm
- * @property {number} drawerFrontHeight  a drawer face's height above doors, mm
  * @property {number} runnerClearance  space for a drawer runner on each side, mm
  * @property {boolean} worktop        include the worktop in the cut list
  * @property {number} worktopDepth   mm
@@ -85,6 +86,7 @@
  * @property {number} doors       side by side (in every compartment)
  * @property {number} drawers
  * @property {'top' | 'bottom'} [drawersAt]  drawers above or below the doors
+ * @property {string} [drawerHeights]  face heights from the top, as typed: "140, 280"
  */
 
 /**
@@ -116,7 +118,6 @@ export const DEFAULT_SETTINGS = Object.freeze({
   railWidth: 100,
   hangingRail: 80,
   backReveal: 2,
-  drawerFrontHeight: 150,
   runnerClearance: 13,
   // Off by default: worktops often come from elsewhere (stone, for example).
   worktop: false,
@@ -135,11 +136,11 @@ export const DEFAULT_SETTINGS = Object.freeze({
 
 /** Typical sizes for a new cabinet of each kind. */
 export const DEFAULT_CABINETS = Object.freeze({
-  base: Object.freeze({ width: 600, height: 720, depth: 560, partitions: 0, hPartitions: 0, shelves: 1, doors: 1, drawers: 0, drawersAt: 'top' }),
-  wall: Object.freeze({ width: 600, height: 720, depth: 300, partitions: 0, hPartitions: 0, shelves: 2, doors: 1, drawers: 0, drawersAt: 'top' }),
+  base: Object.freeze({ width: 600, height: 720, depth: 560, partitions: 0, hPartitions: 0, shelves: 1, doors: 1, drawers: 0, drawersAt: 'top', drawerHeights: '' }),
+  wall: Object.freeze({ width: 600, height: 720, depth: 300, partitions: 0, hPartitions: 0, shelves: 2, doors: 1, drawers: 0, drawersAt: 'top', drawerHeights: '' }),
   // 100 mm legs + 2080 = 2180: the top of a 720 mm wall cabinet hung above a
   // 720 mm base cabinet, a 40 mm worktop and a 600 mm gap.
-  tall: Object.freeze({ width: 600, height: 2080, depth: 560, partitions: 0, hPartitions: 0, shelves: 4, doors: 1, drawers: 0, drawersAt: 'bottom' }),
+  tall: Object.freeze({ width: 600, height: 2080, depth: 560, partitions: 0, hPartitions: 0, shelves: 4, doors: 1, drawers: 0, drawersAt: 'bottom', drawerHeights: '' }),
 });
 
 export const KINDS = /** @type {const} */ (['base', 'wall', 'tall']);
@@ -149,6 +150,24 @@ export const RUNNER_LENGTHS = Object.freeze([250, 300, 350, 400, 450, 500, 550, 
 
 /** How much lower a drawer box is than its face, mm. */
 const BOX_BELOW_FACE = 40;
+
+/** A drawer face next to doors, when the cabinet gives no height, mm. */
+export const DRAWER_FACE = 150;
+
+/** The lowest drawer face that still holds a box, mm. */
+export const MIN_DRAWER_FACE = BOX_BELOW_FACE + 50;
+
+/**
+ * Drawer heights as typed: numbers separated by commas, semicolons or
+ * spaces ("140, 280, 280").
+ * @param {string | undefined} text
+ * @returns {{ heights: number[], invalid: boolean }}
+ */
+export function parseHeights(text) {
+  const tokens = (text ?? '').split(/[\s,;]+/).filter(Boolean);
+  const heights = tokens.map(Number);
+  return { heights: heights.filter((h) => Number.isFinite(h) && h > 0), invalid: heights.some((h) => !(Number.isFinite(h) && h > 0)) };
+}
 
 /** Round to half a millimetre, which is as fine as a panel saw cuts. */
 export const round = (/** @type {number} */ mm) => Math.round(mm * 2) / 2;
@@ -174,20 +193,29 @@ export const drawersAtOf = (cab) => cab.drawersAt ?? DEFAULT_CABINETS[cab.kind].
 export const hasDivider = (cab) => cab.kind === 'tall' && (cab.drawers ?? 0) > 0 && cab.doors > 0;
 
 /**
- * Heights of a cabinet's fronts. Doors come in `rows` (compartments of a
- * tall cabinet), all of `doorHeight`.
+ * Heights of a cabinet's fronts: each drawer's face, from the top of the
+ * drawers, and the doors, which come in `rows` (compartments of a tall
+ * cabinet), all of `doorHeight`.
  * @param {Cabinet} cab
  * @param {Settings} s
- * @returns {{ drawerHeight: number, doorHeight: number, rows: number }}  heights 0 where there are none
+ * @returns {{ drawerHeights: number[], doorHeight: number, rows: number }}  doorHeight 0 without doors
  */
 export function frontHeights(cab, s) {
   const n = cab.drawers ?? 0;
   const gap = s.doorGap;
   const rows = hPartitionsOf(cab) + 1;
-  if (n > 0 && cab.doors === 0) return { drawerHeight: (cab.height - n * gap) / n, doorHeight: 0, rows };
-  const drawerHeight = n > 0 ? s.drawerFrontHeight : 0;
-  const doorZone = cab.height - n * (drawerHeight + gap);
-  return { drawerHeight, doorHeight: cab.doors > 0 ? (doorZone - rows * gap) / rows : 0, rows };
+  const given = parseHeights(cab.drawerHeights).heights.slice(0, n);
+  /** @type {number[]} */
+  let drawerHeights;
+  if (cab.doors > 0) drawerHeights = Array.from({ length: n }, (_, i) => given[i] ?? DRAWER_FACE);
+  else {
+    // Without doors the drawers fill the cabinet: those without a height
+    // share what the others leave.
+    const rest = (cab.height - n * gap - given.reduce((a, b) => a + b, 0)) / Math.max(1, n - given.length);
+    drawerHeights = Array.from({ length: n }, (_, i) => given[i] ?? rest);
+  }
+  const zone = drawerHeights.reduce((a, b) => a + b, 0) + n * gap;
+  return { drawerHeights, doorHeight: cab.doors > 0 ? (cab.height - zone - rows * gap) / rows : 0, rows };
 }
 
 /**
@@ -210,9 +238,10 @@ export function frontHeights(cab, s) {
  */
 export function frontLayout(cab, s) {
   const gap = s.doorGap;
-  const { drawerHeight, doorHeight, rows } = frontHeights(cab, s);
+  const { drawerHeights, doorHeight, rows } = frontHeights(cab, s);
   /** @type {('drawer' | 'door')[]} */
   const drawers = Array((cab.drawers ?? 0)).fill('drawer');
+  let drawer = 0;
   /** @type {('drawer' | 'door')[]} */
   const doorRows = cab.doors > 0 ? Array(rows).fill('door') : [];
   const slots = drawersAtOf(cab) === 'top' ? [...drawers, ...doorRows] : [...doorRows, ...drawers];
@@ -220,7 +249,7 @@ export function frontLayout(cab, s) {
   const fronts = [];
   let top = cab.height - gap / 2;
   for (const kind of slots) {
-    const height = kind === 'drawer' ? drawerHeight : doorHeight;
+    const height = kind === 'drawer' ? drawerHeights[drawer++] : doorHeight;
     const y = top - height;
     if (kind === 'drawer') fronts.push({ kind, x: gap / 2, y, width: cab.width - gap, height, column: 0, columns: 1 });
     else {
@@ -248,7 +277,8 @@ export function doorArea(cab, s) {
   if (hasDivider(cab)) {
     // The divider's face lines up with where the fronts change, `zone` from
     // the drawer end of the cabinet.
-    const zone = (cab.drawers ?? 0) * (s.drawerFrontHeight + s.doorGap);
+    const { drawerHeights } = frontHeights(cab, s);
+    const zone = drawerHeights.reduce((a, b) => a + b, 0) + drawerHeights.length * s.doorGap;
     height = cab.height - T - zone;
     start = drawersAtOf(cab) === 'bottom' ? zone : T;
   }
@@ -298,23 +328,25 @@ export function cabinetParts(cab, s) {
   if (hasShelves(cab)) add('shelf', s.carcassMaterial, sectionWidth(cab, s) - 2, D - s.shelfSetback, cab.shelves * (p + 1) * rows, true, front);
   add('back', s.backMaterial, H - 2 * s.backReveal, W - 2 * s.backReveal, 1, false, NO_EDGES);
 
-  const { drawerHeight, doorHeight } = frontHeights(cab, s);
+  const { drawerHeights, doorHeight } = frontHeights(cab, s);
   const n = cab.doors;
   if (n > 0) add('door', s.frontMaterial, doorHeight, (W - n * s.doorGap) / n, n * rows, true, all);
 
-  const d = cab.drawers ?? 0;
-  if (d > 0) {
+  // Drawers of the same height share their rows, in the order they come.
+  /** @type {Map<number, number>} */
+  const byHeight = new Map();
+  for (const h of drawerHeights) byHeight.set(h, (byHeight.get(h) ?? 0) + 1);
+  const boxWidth = inner - 2 * s.runnerClearance;
+  const boxDepth = runnerLength(D) ?? 0;
+  const top = { ...NO_EDGES, L1: s.carcassEdge };
+  for (const [faceHeight, count] of byHeight) {
     // Drawer faces: the grain runs across the cabinet.
-    add('drawerFace', s.frontMaterial, W - s.doorGap, drawerHeight, d, true, all);
-    // The box is made of the carcass board.
-    const t = T;
-    const boxWidth = inner - 2 * s.runnerClearance;
-    const boxDepth = runnerLength(D) ?? 0;
-    const boxHeight = drawerHeight - BOX_BELOW_FACE;
-    const top = { ...NO_EDGES, L1: s.carcassEdge };
-    add('boxSide', s.carcassMaterial, boxDepth, boxHeight, 2 * d, true, top);
-    add('boxEnd', s.carcassMaterial, boxWidth - 2 * t, boxHeight, 2 * d, true, top);
-    add('boxBottom', s.backMaterial, boxDepth, boxWidth, d, false, NO_EDGES);
+    add('drawerFace', s.frontMaterial, W - s.doorGap, faceHeight, count, true, all);
+    // The box is made of the carcass board, on a bottom of the back material.
+    const boxHeight = faceHeight - BOX_BELOW_FACE;
+    add('boxSide', s.carcassMaterial, boxDepth, boxHeight, 2 * count, true, top);
+    add('boxEnd', s.carcassMaterial, boxWidth - 2 * T, boxHeight, 2 * count, true, top);
+    add('boxBottom', s.backMaterial, boxDepth, boxWidth, count, false, NO_EDGES);
   }
   return parts;
 }
@@ -348,12 +380,18 @@ export function cabinetProblems(cab, s) {
   if (cab.depth - s.shelfSetback <= 0 && cab.shelves > 0 && hasShelves(cab)) problems.push('problem.tooShallow');
   if (cab.doors > 0 && (cab.width - cab.doors * s.doorGap) / cab.doors < 50) problems.push('problem.tooManyDoors');
   const d = cab.drawers ?? 0;
-  const { drawerHeight, doorHeight } = frontHeights(cab, s);
+  const { drawerHeights, doorHeight } = frontHeights(cab, s);
   if (d > 0) {
+    const typed = parseHeights(cab.drawerHeights);
     if ((cab.partitions ?? 0) > 0) problems.push('problem.drawersAndPartitions');
     if (runnerLength(cab.depth) === undefined) problems.push('problem.tooShallowForDrawers');
     if (cab.width - 2 * s.board - 2 * s.runnerClearance - 2 * s.board < 50) problems.push('problem.tooNarrowForDrawers');
-    if (drawerHeight - BOX_BELOW_FACE < 50 || (cab.doors > 0 && hPartitionsOf(cab) === 0 && doorHeight < 100)) problems.push('problem.tooManyDrawers');
+    if (typed.invalid) problems.push('problem.drawerHeightsInvalid');
+    else if (typed.heights.length > d) problems.push('problem.drawerHeightsCount');
+    else if (cab.doors === 0 && typed.heights.length === d && Math.abs(drawerHeights.reduce((a, b) => a + b, 0) + d * s.doorGap - cab.height) > 0.01) {
+      problems.push('problem.drawerHeightsTotal');
+    } else if (typed.heights.some((h) => h < MIN_DRAWER_FACE)) problems.push('problem.drawerTooLow');
+    else if (drawerHeights.some((h) => h < MIN_DRAWER_FACE) || (cab.doors > 0 && hPartitionsOf(cab) === 0 && doorHeight < 100)) problems.push('problem.tooManyDrawers');
   }
   if (hPartitionsOf(cab) > 0 && (doorArea(cab, s).compartment < 100 || (cab.doors > 0 && doorHeight < 100))) {
     problems.push('problem.tooManyHPartitions');

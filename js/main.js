@@ -167,7 +167,8 @@ function cabinetCard(cab, index) {
   const placement = `<label class="field"><span>${tr('drawersAt')}</span><select data-field="drawersAt">${['top', 'bottom']
     .map((v) => `<option value="${v}"${v === at ? ' selected' : ''}>${tr(`drawersAt.${v}`)}</option>`)
     .join('')}</select></label>`;
-  const fields = [...numbers, placement].join('');
+  const heights = `<label class="field"><span>${tr('drawerHeights')}</span><input data-field="drawerHeights" type="text" inputmode="decimal" placeholder="${tr('drawerHeights.placeholder')}" /></label>`;
+  const fields = [...numbers, placement, heights].join('');
   li.innerHTML = `
     <div class="cabinet-head">
       <span class="kind">${tr(`kind.${cab.kind}`)}</span>
@@ -183,6 +184,7 @@ function cabinetCard(cab, index) {
     <p class="problem" hidden></p>
     <p class="note" hidden></p>`;
   /** @type {HTMLInputElement} */ (li.querySelector('.cabinet-name')).value = cab.name;
+  /** @type {HTMLInputElement} */ (li.querySelector('[data-field="drawerHeights"]')).value = cab.drawerHeights ?? '';
   return li;
 }
 
@@ -200,7 +202,9 @@ function renderProblems() {
     if (!p) continue;
     const problems = cabinetProblems(cab, state.project.settings);
     p.hidden = problems.length === 0;
-    p.textContent = problems.length ? [...problems.map((k) => tr(k)), tr('skipped')].join(' ') : '';
+    // The drawer total names the height the drawers must fill.
+    const vars = { total: cab.height - (cab.drawers ?? 0) * state.project.settings.doorGap };
+    p.textContent = problems.length ? [...problems.map((k) => tr(k, vars)), tr('skipped')].join(' ') : '';
     const note = /** @type {HTMLElement} */ (p.nextElementSibling);
     const noShelves = !hasShelves(cab) && cab.shelves > 0;
     note.hidden = !noShelves;
@@ -293,6 +297,7 @@ $('#cabinets').addEventListener('input', (e) => {
   if (!cab || !key) return;
   if (key === 'name') cab.name = input.value;
   else if (key === 'drawersAt') cab.drawersAt = input.value === 'top' ? 'top' : 'bottom';
+  else if (key === 'drawerHeights') cab.drawerHeights = input.value;
   else {
     const n = readNumber(input);
     // An empty size counts as 0, so the cabinet shows "enter the width".

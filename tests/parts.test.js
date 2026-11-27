@@ -6,6 +6,7 @@ import {
   DEFAULT_CABINETS,
   doorArea,
   frontLayout,
+  parseHeights,
   hasDivider,
   DEFAULT_SETTINGS,
   frontHeights,
@@ -166,7 +167,7 @@ describe('drawers', () => {
     // 720 - (150 + 3) - 3
     assert.equal(find(mixed, 'door').length, 564);
     assert.equal(find(mixed, 'shelf').qty, 1);
-    assert.deepEqual(frontHeights({ ...base, drawers: 1, doors: 1 }, s), { drawerHeight: 150, doorHeight: 564, rows: 1 });
+    assert.deepEqual(frontHeights({ ...base, drawers: 1, doors: 1 }, s), { drawerHeights: [150], doorHeight: 564, rows: 1 });
   });
 
   it('refuse what cannot be built', () => {
@@ -193,6 +194,52 @@ describe('tall cabinet', () => {
     assert.equal(find(parts, 'railFront'), undefined);
     assert.equal(find(parts, 'door').length, 2077);
     assert.equal(find(parts, 'shelf').qty, 4);
+  });
+});
+
+describe('drawer heights', () => {
+  it('read numbers separated by commas, semicolons or spaces', () => {
+    assert.deepEqual(parseHeights('140, 280;280 300'), { heights: [140, 280, 280, 300], invalid: false });
+    assert.deepEqual(parseHeights(''), { heights: [], invalid: false });
+    assert.equal(parseHeights('140, abc').invalid, true);
+    assert.equal(parseHeights('140, -5').invalid, true);
+  });
+
+  it('are set per drawer, from the top, and share what is left without doors', () => {
+    const chest = { ...base, drawers: 3, doors: 0, drawerHeights: '140' };
+    // (720 - 3 * 3 - 140) / 2 = 285.5 for each of the other two.
+    assert.deepEqual(frontHeights(chest, settings).drawerHeights, [140, 285.5, 285.5]);
+    assert.deepEqual(frontLayout(chest, settings).map((f) => f.height), [140, 285.5, 285.5]);
+    const parts = cabinetParts(chest, settings);
+    const faces = parts.filter((p) => p.type === 'drawerFace').map((p) => [p.width, p.qty]);
+    assert.deepEqual(faces, [[140, 1], [285.5, 2]]);
+    const sides = parts.filter((p) => p.type === 'boxSide').map((p) => [p.width, p.qty]);
+    assert.deepEqual(sides, [[100, 2], [245.5, 4]]);
+    assert.deepEqual(cabinetProblems(chest, settings), []);
+  });
+
+  it('default to 150 mm next to doors, the doors taking the rest', () => {
+    const mixed = { ...base, drawers: 2, doors: 1, drawerHeights: '200' };
+    assert.deepEqual(frontHeights(mixed, settings), { drawerHeights: [200, 150], doorHeight: 720 - (200 + 150 + 2 * 3) - 3, rows: 1 });
+  });
+
+  it('move the board in a tall cabinet', () => {
+    const tall = { id: 't', name: 'T', kind: 'tall', ...DEFAULT_CABINETS.tall, drawers: 2, drawerHeights: '200, 300' };
+    assert.equal(doorArea(tall, settings).start, 506);
+  });
+
+  it('must fill a cabinet without doors when all are given', () => {
+    const chest = { ...base, drawers: 3, doors: 0 };
+    assert.deepEqual(cabinetProblems({ ...chest, drawerHeights: '140, 280, 291' }, settings), []);
+    assert.deepEqual(cabinetProblems({ ...chest, drawerHeights: '140, 280, 280' }, settings), ['problem.drawerHeightsTotal']);
+  });
+
+  it('report what is wrong with them', () => {
+    const chest = { ...base, drawers: 2, doors: 0 };
+    assert.deepEqual(cabinetProblems({ ...chest, drawerHeights: '140, x' }, settings), ['problem.drawerHeightsInvalid']);
+    assert.deepEqual(cabinetProblems({ ...chest, drawerHeights: '140, 200, 300' }, settings), ['problem.drawerHeightsCount']);
+    assert.deepEqual(cabinetProblems({ ...chest, drawerHeights: '60' }, settings), ['problem.drawerTooLow']);
+    assert.deepEqual(cabinetProblems({ ...base, drawers: 1, doors: 1, drawerHeights: '650' }, settings), ['problem.tooManyDrawers']);
   });
 });
 
