@@ -110,7 +110,7 @@ const STRINGS = {
     'part.partition': 'ტიხარი',
     'part.hPartition': 'ჰორიზონტალური ტიხარი',
     'part.shelf': 'თარო',
-    'part.back': 'უკანა კედელი',
+    'part.back': 'უკანა ფანერა',
     'part.door': 'კარი',
     'part.drawerFace': 'უჯრის ფასადი',
     'part.boxSide': 'უჯრის გვერდი',
