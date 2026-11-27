@@ -66,9 +66,10 @@ starts a new run), 600 mm deep by default, in its own material. It
 overhangs the left and right ends of the kitchen by the overhang settings
 (0 against a wall), never against a tall cabinet. A run longer than the
 longest piece (4100 mm by default) is cut into pieces that join over a
-cabinet side, as many whole cabinets per piece as fit. Untick "Worktop"
-when it is made elsewhere (stone, for example); the drawing shows it
-either way, with its joints.
+cabinet side, as many whole cabinets per piece as fit. "Worktop" is off
+by default, since it is often made elsewhere (stone, for example); tick it
+to add it to the cut list. The drawing shows it either way, with its
+joints.
 
 A part's length runs along the grain. Edge banding is per edge: L1 and L2
 along the length (L1 is the front edge), W1 and W2 along the width.

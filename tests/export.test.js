@@ -94,10 +94,12 @@ describe('project', () => {
     assert.equal(p?.cabinets[0].hPartitions, 0);
   });
 
-  it('keeps the worktop switch, and turns it on for projects from before it existed', () => {
+  it('keeps the worktop switch, off unless a project turned it on', () => {
+    assert.equal(sanitizeProject({ settings: { worktop: true }, cabinets: [] }, 'en')?.settings.worktop, true);
     assert.equal(sanitizeProject({ settings: { worktop: false }, cabinets: [] }, 'en')?.settings.worktop, false);
-    assert.equal(sanitizeProject({ settings: {}, cabinets: [] }, 'en')?.settings.worktop, true);
-    assert.equal(sanitizeProject({ settings: { worktop: 'yes' }, cabinets: [] }, 'en')?.settings.worktop, true);
+    assert.equal(sanitizeProject({ settings: {}, cabinets: [] }, 'en')?.settings.worktop, false);
+    assert.equal(sanitizeProject({ settings: { worktop: 'yes' }, cabinets: [] }, 'en')?.settings.worktop, false);
+    assert.equal(newProject('en').settings.worktop, false);
   });
 
   it('repairs damaged data with defaults', () => {

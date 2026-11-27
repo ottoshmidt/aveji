@@ -118,7 +118,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   backReveal: 2,
   drawerFrontHeight: 150,
   runnerClearance: 13,
-  worktop: true,
+  // Off by default: worktops often come from elsewhere (stone, for example).
+  worktop: false,
   worktopDepth: 600,
   worktopThickness: 38,
   worktopOverhangLeft: 0,

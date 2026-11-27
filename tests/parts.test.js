@@ -267,7 +267,7 @@ describe('tall cabinet compartments', () => {
 });
 
 describe('worktop', () => {
-  const s = { ...settings, worktopMaterial: 'Worktop 38' };
+  const s = { ...settings, worktop: true, worktopMaterial: 'Worktop 38' };
   const cab = (name, kind, width) => ({ ...base, id: name, name, kind, width });
   const worktops = (cabinets, settings = s) => projectParts(cabinets, settings).filter((p) => p.type === 'worktop');
 
@@ -355,8 +355,8 @@ describe('merging and totals', () => {
     const sides = merged.find((p) => p.type === 'side');
     assert.equal(sides.qty, 4);
     assert.equal(sides.cabinet, 'B1, B2');
-    // The same parts as one cabinet, plus the worktop over both.
-    assert.equal(merged.length, cabinetParts(base, settings).length + 1);
+    // The same parts as one cabinet (the worktop is off by default).
+    assert.equal(merged.length, cabinetParts(base, settings).length);
   });
 
   it('keeps parts apart when their banding differs', () => {
